@@ -10,7 +10,7 @@
 		 (:file "s-expressions")
 		 (:file "load") (:file "repl")
 		 (:file "lisp") (:file "object-system") (:file "level1-boot"))))
-  :description ""
+  :description "The Treep language"
   :in-order-to ((test-op (test-op "treep/tests"))))
 
 (defsystem "treep/tests"
@@ -22,3 +22,13 @@
                 ((:file "main") (:file "object-system"))))
   :description "Test system for treep"
   :perform (test-op (op c) (symbol-call :rove :run c)))
+
+(defsystem "treep/server"
+  :version "0.1.0"
+  :author "Alessio Stalla"
+  :license "AGPL"
+  :depends-on ("treep" "ningle")
+  :components ((:module "src/server"
+                :components
+                ((:file "server"))))
+  :description "HTTP access to the running Treep image")
