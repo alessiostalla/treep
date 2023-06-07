@@ -50,9 +50,6 @@
 (closer-mop:finalize-inheritance (find-class 'form))
 (setf (slot-definition-symbol (slot 'parent 'form)) +form-parent-symbol+)
 
-(defvar *form-classes* (make-hash-table)
-  "Mappings from class name to metaclass object")
-
 (defgeneric transient-slot? (form slot))
 (defmethod transient-slot? ((form form) slot)
   (or (eq slot 'parent)))
@@ -85,8 +82,8 @@
   (:metaclass form-class))
 
 (defmethod transform (transformer (form quote) environment)
-  (declare (ignore transformer environment))
-  (quoted-form form))
+  (declare (ignore transformer))
+  (values (quoted-form form) environment))
 
 #|TODO move/redo
 (defclass constant (form)

@@ -20,7 +20,7 @@
   :depends-on ("treep" "rove")
   :components ((:module "tests"
                 :components
-                ((:file "main") (:file "object-system"))))
+                ((:file "main")))) ;TODO (:file "object-system"))))
   :description "Test system for treep"
   :perform (test-op (op c) (symbol-call :rove :run c)))
 

@@ -20,6 +20,8 @@
 		 (t (error "Not a symbol space designator: ~S" space))))) ;TODO dedicated condition
     (or (%find-symbol the-name space)
 	(let ((symbol (make-instance 'symbol :name the-name :parent (symbol-space-name space))))
+	  (setf (symbol-space symbol) ;;TODO make this the default, but optional 
+		(make-instance 'symbol-space :name symbol :search-path (fset:seq space)))
 	  (setf (symbol-space-contents space)
 		(fset:with (symbol-space-contents space) the-name symbol))
 	  symbol))))
@@ -30,8 +32,6 @@
 		 (symbol-space space)
 		 (symbol (or (symbol-space space) (return-from %find-symbol)))
 		 (t (error "Not a symbol space designator: ~S" space))))) ;TODO dedicated condition
-    (when (member space exclude)
-      (return-from %find-symbol))
     (let ((symbol (fset:@ (symbol-space-contents space) the-name)))
       (if symbol
 	  symbol

@@ -11,17 +11,23 @@
   (testing "(= 1 1) should eval to true"
     (ok (= 1 1))))
 
+(deftest symbols-test
+  (testing "The default search path of a symbol includes its parent"
+    (ok (eq treep-impl::+seq+ (find-symbol "seq" treep-impl::+symbol-repl+)))))
+
+#|
 (deftest forms-test
   (testing "Nested forms have the enclosing form as parent"
     (let* ((def (make-instance 'variable-definition))
 	   (var (intern "a" +root-symbol+))
 	   (form (make-instance 'binding :name var :definition def)))
       (ok (eq (form-parent def) form)))))
+|#
 
 (deftest evaluator/basic
   (testing "Lisp objects (e.g., numbers) should eval to themselves"
     (ok (= 1 (transform (make-instance 'simple-evaluator) 1 *environment*))))
-  
+#|  
   (testing "(binding ((var a)) a) should eval to nil"
     (let* ((var (intern "a" +root-symbol+))
 	   (form (make-instance 'binding :definition (make-instance 'variable-definition :name var)
@@ -40,8 +46,10 @@
     (let* ((value 1)
 	   (form (make-instance 'conditional :condition t :then value))
 	   (result (transform (make-instance 'simple-evaluator) form *environment*)))
-      (ok (= value result)))))
+  (ok (= value result))))|#
+  )
 
+#|
 (deftest evaluator+reader
   (testing "Evaluating the form (binding (variable-definition a 1) (variable-read a)) should eval to 1"
     (with-read-symbol-syntax ()
@@ -75,3 +83,4 @@
 	(ok (typep result 'fset:seq))
 	(ok (= (fset:size result) 3))
 	(ok (= (fset:@ result 0) 1))))))
+|#

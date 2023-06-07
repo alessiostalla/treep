@@ -2,22 +2,28 @@
 
 (defclass simple-evaluator () ())
 
-(defun eval (form &optional (*environment* *environment*))
-  (transform (make-instance 'simple-evaluator) form *environment*))
+(defun eval (form &optional (environment *environment*))
+  (multiple-value-bind (result env)
+      (transform (make-instance 'simple-evaluator) form environment)
+    (when (eq environment *environment*) ;;Convenience for top-level eval
+      (setf *environment* env))
+    (values result env)))
 
 (defmethod transform ((transformer simple-evaluator) form environment)
-  form) ;Lisp objects are self-evaluating
+  (values form environment)) ;Lisp objects are self-evaluating
 
 (defmethod transform ((transformer simple-evaluator) (form seq) environment)
-  (fset:image (lambda (f) (transform transformer f environment)) (seq-elements form)))
+  (values
+   (fset:image (lambda (f) (transform transformer f environment)) (seq-elements form))
+   environment))
 
-(defmethod transform ((transformer simple-evaluator) (form form-definition) environment)
-  (let ((class-name (or (form-definition-name form) (error "The name of a form definition is required"))))
-    (setf (gethash class-name *form-classes*)
-	  (make-instance 'form-class :name class-name
-			 :direct-superclasses (list 'form) ;TODO
-			 ;TODO slots
-			 ))))
+(defmethod transform ((transformer simple-evaluator) (form abstraction-definition) environment)
+  (let* ((class-name (or (form-definition-name form) (error "The name of an abstraction definition is required")))
+	 (class (make-instance 'form-class :name class-name
+			       :direct-superclasses (list 'form) ;TODO
+					;TODO slots
+			       )))
+    (values class (augment-environment environment class-name +kind-class+ class))))
 
 #|TODO move/redo
 
