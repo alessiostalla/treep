@@ -2,13 +2,24 @@
 
 (defclass simple-evaluator () ())
 
-(defmethod transform ((transformer simple-evaluator) form environment)
-  (if (typep form 'form)
-      (call-next-method)
-      form)) ;Lisp objects are self-evaluating
+(defun eval (form &optional (*environment* *environment*))
+  (transform (make-instance 'simple-evaluator) form *environment*))
 
-(defmethod transform ((transformer simple-evaluator) (form fset:seq) environment)
-  (fset:last (fset:image (lambda (f) (transform transformer f environment)) form)))
+(defmethod transform ((transformer simple-evaluator) form environment)
+  form) ;Lisp objects are self-evaluating
+
+(defmethod transform ((transformer simple-evaluator) (form seq) environment)
+  (fset:image (lambda (f) (transform transformer f environment)) (seq-elements form)))
+
+(defmethod transform ((transformer simple-evaluator) (form form-definition) environment)
+  (let ((class-name (or (form-definition-name form) (error "The name of a form definition is required"))))
+    (setf (gethash class-name *form-classes*)
+	  (make-instance 'form-class :name class-name
+			 :direct-superclasses (list 'form) ;TODO
+			 ;TODO slots
+			 ))))
+
+#|TODO move/redo
 
 (defclass box ()
   ((value :initarg :value :accessor box-value)))
@@ -137,7 +148,4 @@
 
 (defmethod transform ((transformer simple-evaluator) (form loop-break) environment)
   (throw (loop-name form) (transform transformer (return-form form) environment)))
-
-(defun eval (form &optional (*environment* *environment*))
-  (transform (make-instance 'simple-evaluator) form *environment*))
-
+|#

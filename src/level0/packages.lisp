@@ -12,9 +12,8 @@
 	   #:new-instance
 	   #:quote 
 	   #:read-form #:read-symbol #:read-symbol-from-string #:+root-symbol+
-	   #:sexp-->form #:simple-evaluator #:slot-definition #:slot-read #:slot-write #:specialized-function-argument #:symbol #:+symbol-treep+
-	   #:transform
+	   #:seq #:sexp-->form #:simple-evaluator #:slot-definition #:slot-read #:slot-write #:specialized-function-argument #:symbol #:+symbol-treep+
+	   #:transform #:transient-slot?
 	   #:variable-access #:variable-definition
 	   #:variable-read #:variable-write
-	   
 	   #:with-read-symbol-syntax))

@@ -1,13 +1,17 @@
 (in-package :treep-impl)
 
-(defclass quit (form) ())
+(defconstant +symbol-repl+ (intern "repl" +symbol-treep+))
+(defconstant +symbol-repl-quit+ (intern "quit" +symbol-repl+))
 
-(defun repl (&key (evaluator (make-instance 'simple-evaluator)) (reader (make-instance 's-expression-reader)))
+;;TODO expose to the REPL as just "quit"
+(define-abstraction quit +symbol-repl-quit+)
+
+(defun repl (&key (evaluator (make-instance 'simple-evaluator)))
   (cl:loop
-   (format t "~A> " (package-name *package*))
+   (format t "~A> " *symbol-space*)
    (force-output)
    (restart-case
-       (let ((form (read-form reader *standard-input*)))
+       (let ((form (read-form *standard-input* *environment*)))
 	 (when (typep form 'quit) (return))
 	 (with-read-symbol-syntax ()
 	   (print (transform evaluator form *environment*)))

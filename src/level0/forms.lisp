@@ -7,8 +7,61 @@
 (defclass environment ()
   ((bindings :initform (fset:map) :initarg :bindings :accessor environment-bindings)))
 
+(defun augment-environment (environment name kind meaning)
+  (flet ((compute-meanings ()
+	   (fset:with (or (fset:@ (environment-bindings environment) name)
+			  (fset:map))
+		      kind
+		      meaning)))
+    (make-instance 'environment :bindings
+		   (fset:with (environment-bindings environment)
+			      name
+			      (compute-meanings)))))
+
+(defclass form-class (closer-mop:standard-class) ())
+(defclass form-slot-definition ()
+  ((symbol :initarg :symbol :accessor slot-definition-symbol)))
+(defclass direct-form-slot-definition (closer-mop:standard-direct-slot-definition form-slot-definition) ())
+(defclass effective-form-slot-definition (closer-mop:standard-effective-slot-definition form-slot-definition) ())
+
+(defmethod closer-mop:validate-superclass ((class form-class) (superclass standard-class))
+  t)
+
+(defmethod closer-mop:direct-slot-definition-class ((class form-class) &rest initargs)
+  (declare (ignore initargs))
+  (find-class 'direct-form-slot-definition))
+
+(defmethod closer-mop:effective-slot-definition-class ((class form-class) &rest initargs)
+  (declare (ignore initargs))
+  (find-class 'effective-form-slot-definition))
+
+(defconstant +form-symbol+ (intern "form" +symbol-treep+))
+(defconstant +form-parent-symbol+ (intern "parent" +form-symbol+))
+
 (defclass form ()
-  ((parent :accessor form-parent)))
+  ((parent :accessor form-parent))
+  (:metaclass form-class))
+
+(defun slot (name class)
+  (or (find-if (lambda (def) (eq name (closer-mop:slot-definition-name def)))
+	       (closer-mop:class-slots (if (symbolp class) (find-class class) class)))
+      (error "~A does not name a slot in ~A" name class)))
+
+(closer-mop:finalize-inheritance (find-class 'form))
+(setf (slot-definition-symbol (slot 'parent 'form)) +form-parent-symbol+)
+
+(defvar *form-classes* (make-hash-table)
+  "Mappings from class name to metaclass object")
+
+(defgeneric transient-slot? (form slot))
+(defmethod transient-slot? ((form form) slot)
+  (or (eq slot 'parent)))
+(defmethod transient-slot? ((form cl:class) slot)
+  (transient-slot? (make-instance form) slot))
+(defmethod transient-slot? ((form symbol) slot)
+  (transient-slot? (make-instance form) slot))
+(defmethod transient-slot? (form (slot closer-mop:slot-definition))
+  (transient-slot? form (closer-mop:slot-definition-name slot)))
 
 (defgeneric init-subform (parent name child))
 (defmethod init-subform ((parent form) (name (eql 'parent)) (child form))
@@ -28,12 +81,14 @@
 (defgeneric transform (transformer form environment))
 
 (defclass quote (form)
-  ((form :initarg :form :reader quoted-form)))
+  ((form :initarg :form :reader quoted-form))
+  (:metaclass form-class))
 
 (defmethod transform (transformer (form quote) environment)
   (declare (ignore transformer environment))
   (quoted-form form))
 
+#|TODO move/redo
 (defclass constant (form)
   ((value :initarg :value :reader constant-value)))
 
@@ -68,9 +123,6 @@
 (defclass macro (form)
   ((expansion :initarg :expansion :reader macro-expansion)))
 
-(defun make-form-class (name &optional (superclass (find-class 'form)))
-  (make-instance 'standard-class :name name :direct-superclasses (list superclass)))
-
 (defmethod transform (transformer (form macro) environment)
   (let ((expanded (funcall (macro-expansion form) form environment)))
     (transform transformer expanded environment)))
@@ -94,17 +146,6 @@
 (defclass define (form)
   ((definition :initarg :definition :reader define-definition :type definition)))
 
-(defun augment-environment (environment name kind meaning)
-  (flet ((compute-meanings ()
-	   (fset:with (or (fset:@ (environment-bindings environment) name)
-			  (fset:map))
-		      kind
-		      meaning)))
-    (make-instance 'environment :bindings
-		   (fset:with (environment-bindings environment)
-			      name
-			      (compute-meanings)))))
-
 ;;TODO Should this inherit from variable?
 (defclass variable-definition (definition)
   ((init-form :initarg :init-form :initform nil :reader variable-definition-init-form)
@@ -121,6 +162,7 @@
   +kind-variable+)
 (defmethod definition-kind (transformer (definition function-definition))
   +kind-function+)
+|#
 
 (defun initial-environment ()
   (make-instance 'environment))
@@ -135,6 +177,7 @@
 (defun copy-environment (&optional (environment *environment*))
   (make-instance 'environment :bindings (environment-bindings environment)))
 
+#|TODO
 (defgeneric compute-new-environment-for-definition (transformer definition environment))
 
 (defmethod compute-new-environment-for-definition (transformer (definition definition) environment)
@@ -151,8 +194,30 @@
   (let ((def (define-definition form)))
     (setf (environment-bindings environment)
 	  (environment-bindings (compute-new-environment-for-definition transformer def environment)))))
+|#
 
-;;Common forms
+(defmacro define-abstraction (name symbol &optional (superclasses '(form)) slots)
+  `(progn
+     (defclass ,name ,superclasses ,slots (:metaclass form-class))
+     (setf *environment* (augment-environment *environment* ,symbol +kind-class+ (cl:find-class ',name)))))
+
+;;Basic forms
+(defconstant +abstraction-definition+ (intern "abstraction-definition" +symbol-treep+))
+(defconstant +seq+                    (intern "seq"                    +symbol-treep+))
+(defconstant +slot-definition+        (intern "slot-definition"        +symbol-treep+))
+
+(define-abstraction seq +seq+ (form)
+  ((elements :initarg :elements :accessor seq-elements)))
+
+(define-abstraction slot-definition +slot-definition+ (form)
+  ((name :initarg :name :accessor slot-definition-name)))
+
+(define-abstraction abstraction-definition +abstraction-definition+ (form)
+  ((name :initarg :name :accessor form-definition-name)
+   (direct-superclasses :initarg :direct-superclasses :accessor form-definition-direct-superclasses)
+   (slots :initarg :slots :accessor form-definition-slots)))
+
+#| TODO Common forms
 (defclass conditional (form)
   ((condition :initarg :condition :reader conditional-if)
    (then :initarg :then :reader conditional-then :type form :initform nil)
@@ -165,3 +230,4 @@
 (defclass loop-break (form)
   ((loop-name :initarg :loop-name :reader loop-name :initform nil)
    (return-form :initarg :return :reader return-form :initform nil)))
+|#

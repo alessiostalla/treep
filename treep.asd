@@ -7,9 +7,10 @@
                 :components
                 ((:file "packages") (:file "symbols")
 		 (:file "forms") (:file "evaluator")
-		 (:file "s-expressions")
+		 (:file "s-expressions") (:file "reader")
 		 (:file "load") (:file "repl")
-		 (:file "lisp") (:file "object-system") (:file "level1-boot"))))
+		 ;;TODO (:file "lisp") (:file "object-system") (:file "level1-boot")
+		 )))
   :description "The Treep language"
   :in-order-to ((test-op (test-op "treep/tests"))))
 
@@ -27,7 +28,7 @@
   :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("treep" "ningle")
+  :depends-on ("treep" "ningle" "cl-json")
   :components ((:module "src/server"
                 :components
                 ((:file "server"))))

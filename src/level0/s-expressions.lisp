@@ -4,7 +4,7 @@
 
 (defmethod form-template ((form form))
   (let ((class (class-of form)))
-    `(,(class-name class) ,@(remove-if (lambda (x) (eq 'parent (closer-mop:slot-definition-name x)))
+    `(,(class-name class) ,@(remove-if (lambda (x) (transient-slot? form x))
 				       (closer-mop:class-slots class)))))
 
 (defun sexp-->form (sexp)
