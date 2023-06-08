@@ -19,12 +19,11 @@
 			      (compute-meanings)))))
 
 (defclass form-class (closer-mop:standard-class) ())
-(defclass form-slot-definition ()
-  ((symbol :initarg :symbol :accessor slot-definition-symbol)))
+(defclass form-slot-definition () ())
 (defclass direct-form-slot-definition (closer-mop:standard-direct-slot-definition form-slot-definition) ())
 (defclass effective-form-slot-definition (closer-mop:standard-effective-slot-definition form-slot-definition) ())
 
-(defmethod closer-mop:validate-superclass ((class form-class) (superclass standard-class))
+(defmethod closer-mop:validate-superclass ((class form-class) (superclass closer-mop:standard-class))
   t)
 
 (defmethod closer-mop:direct-slot-definition-class ((class form-class) &rest initargs)
@@ -41,6 +40,7 @@
 (defclass form ()
   ((parent :accessor form-parent))
   (:metaclass form-class))
+(setf (get 'form 'symbol) +form-symbol+)
 
 (defun slot (name class)
   (or (find-if (lambda (def) (eq name (closer-mop:slot-definition-name def)))
@@ -48,17 +48,17 @@
       (error "~A does not name a slot in ~A" name class)))
 
 (closer-mop:finalize-inheritance (find-class 'form))
-(setf (slot-definition-symbol (slot 'parent 'form)) +form-parent-symbol+)
+(setf (get 'parent 'symbol) +form-parent-symbol+)
 
 (defgeneric transient-slot? (form slot))
-(defmethod transient-slot? ((form form) slot)
+(defmethod transient-slot? (form (slot cl:symbol))
   (or (eq slot 'parent)))
+(defmethod transient-slot? (form (slot closer-mop:slot-definition))
+  (transient-slot? form (closer-mop:slot-definition-name slot)))
 (defmethod transient-slot? ((form cl:class) slot)
   (transient-slot? (make-instance form) slot))
 (defmethod transient-slot? ((form symbol) slot)
   (transient-slot? (make-instance form) slot))
-(defmethod transient-slot? (form (slot closer-mop:slot-definition))
-  (transient-slot? form (closer-mop:slot-definition-name slot)))
 
 (defgeneric init-subform (parent name child))
 (defmethod init-subform ((parent form) (name (eql 'parent)) (child form))
@@ -76,14 +76,6 @@
 	       (init-subform instance name (cl:slot-value instance name)))))) ;;TODO lists of children
 
 (defgeneric transform (transformer form environment))
-
-(defclass quote (form)
-  ((form :initarg :form :reader quoted-form))
-  (:metaclass form-class))
-
-(defmethod transform (transformer (form quote) environment)
-  (declare (ignore transformer))
-  (values (quoted-form form) environment))
 
 #|TODO move/redo
 (defclass constant (form)
@@ -196,12 +188,22 @@
 (defmacro define-abstraction (name symbol &optional (superclasses '(form)) slots)
   `(progn
      (defclass ,name ,superclasses ,slots (:metaclass form-class))
-     (setf *environment* (augment-environment *environment* ,symbol +kind-class+ (cl:find-class ',name)))))
+     (setf *environment* (augment-environment *environment* ,symbol +kind-class+ (cl:find-class ',name)))
+     (setf (get ',name 'symbol) ,symbol)
+     ',name))
 
 ;;Basic forms
 (defconstant +abstraction-definition+ (intern "abstraction-definition" +symbol-treep+))
+(defconstant +quote+                  (intern "quote"                  +symbol-treep+))
 (defconstant +seq+                    (intern "seq"                    +symbol-treep+))
 (defconstant +slot-definition+        (intern "slot-definition"        +symbol-treep+))
+
+(define-abstraction quote +quote+ (form)
+  ((form :initarg :form :reader quoted-form)))
+
+(defmethod transform (transformer (form quote) environment)
+  (declare (ignore transformer))
+  (values (quoted-form form) environment))
 
 (define-abstraction seq +seq+ (form)
   ((elements :initarg :elements :accessor seq-elements)))

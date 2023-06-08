@@ -19,8 +19,9 @@
 
 (defmethod transform ((transformer simple-evaluator) (form abstraction-definition) environment)
   (let* ((class-name (or (form-definition-name form) (error "The name of an abstraction definition is required")))
+	 ;; TODO is this the proper MOP incantation?
 	 (class (make-instance 'form-class :name class-name
-			       :direct-superclasses (list 'form) ;TODO
+			       :direct-superclasses (list (find-class 'form)) ;TODO
 					;TODO slots
 			       )))
     (values class (augment-environment environment class-name +kind-class+ class))))

@@ -7,8 +7,9 @@
                 :components
                 ((:file "packages") (:file "symbols")
 		 (:file "forms") (:file "evaluator")
-		 (:file "s-expressions") (:file "reader")
-		 (:file "load") (:file "repl")
+		 (:file "reader") (:file "load")
+		 (:file "printer")
+		 (:file "repl")
 		 ;;TODO (:file "lisp") (:file "object-system") (:file "level1-boot")
 		 )))
   :description "The Treep language"
