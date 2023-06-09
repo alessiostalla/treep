@@ -2,13 +2,14 @@
   :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("closer-mop" "cl-unification" "fset")
+  :depends-on ("closer-mop" "fset")
   :components ((:module "src/level0"
                 :components
                 ((:file "packages") (:file "symbols")
-		 (:file "forms") (:file "evaluator")
+		 (:file "abstractions")
 		 (:file "reader") (:file "load")
 		 (:file "printer")
+		 (:file "evaluator")
 		 (:file "repl")
 		 ;;TODO (:file "lisp") (:file "object-system") (:file "level1-boot")
 		 )))

@@ -17,11 +17,20 @@
    (fset:image (lambda (f) (transform transformer f environment)) (seq-elements form))
    environment))
 
+(defun resolve-class (designator environment)
+  (typecase designator
+    (symbol (or (meaning designator +kind-class+ environment) (error "~A is not the name of a class" designator)))
+    (cl:symbol (find-class designator))
+    (t (error "Not a class designator: ~A" designator))))
+
 (defmethod transform ((transformer simple-evaluator) (form abstraction-definition) environment)
-  (let* ((class-name (or (form-definition-name form) (error "The name of an abstraction definition is required")))
+  (let* ((class-name (or (abstraction-definition-name form) (error "The name of an abstraction definition is required")))
+	 (direct-superclasses (or (fset:convert 'list ;; TODO compute these in a different phase/transformer
+						(fset:image (lambda (c) (resolve-class c environment))
+							    (seq-elements (abstraction-definition-direct-superclasses form))))
+				  (list (find-class 'form))))
 	 ;; TODO is this the proper MOP incantation?
-	 (class (make-instance 'form-class :name class-name
-			       :direct-superclasses (list (find-class 'form)) ;TODO
+	 (class (make-instance 'form-class :name class-name :direct-superclasses direct-superclasses
 					;TODO slots
 			       )))
     (values class (augment-environment environment class-name +kind-class+ class))))

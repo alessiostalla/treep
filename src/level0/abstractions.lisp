@@ -19,7 +19,7 @@
 			      (compute-meanings)))))
 
 (defclass form-class (closer-mop:standard-class) ())
-(defclass form-slot-definition () ())
+(defclass form-slot-definition () ((slot-name :initarg :slot-name :accessor slot-name)))
 (defclass direct-form-slot-definition (closer-mop:standard-direct-slot-definition form-slot-definition) ())
 (defclass effective-form-slot-definition (closer-mop:standard-effective-slot-definition form-slot-definition) ())
 
@@ -34,13 +34,13 @@
   (declare (ignore initargs))
   (find-class 'effective-form-slot-definition))
 
-(defconstant +form-symbol+ (intern "form" +symbol-treep+))
-(defconstant +form-parent-symbol+ (intern "parent" +form-symbol+))
+(defconstant +symbol-form+        (intern "form"   +symbol-treep+))
+(defconstant +symbol-form-parent+ (intern "parent" +symbol-form+))
 
 (defclass form ()
   ((parent :accessor form-parent))
   (:metaclass form-class))
-(setf (get 'form 'symbol) +form-symbol+)
+(setf (get 'form 'symbol) +symbol-form+)
 
 (defun slot (name class)
   (or (find-if (lambda (def) (eq name (closer-mop:slot-definition-name def)))
@@ -48,7 +48,7 @@
       (error "~A does not name a slot in ~A" name class)))
 
 (closer-mop:finalize-inheritance (find-class 'form))
-(setf (get 'parent 'symbol) +form-parent-symbol+)
+(setf (get 'parent 'symbol) +symbol-form-parent+)
 
 (defgeneric transient-slot? (form slot))
 (defmethod transient-slot? (form (slot cl:symbol))
@@ -153,8 +153,13 @@
   +kind-function+)
 |#
 
+(defun initial-bindings ()
+  (let ((map (fset:map)))
+    (setf map (fset:with map +symbol-form+ (fset:with (fset:map) +kind-class+ (find-class 'form))))
+    map))
+
 (defun initial-environment ()
-  (make-instance 'environment))
+  (make-instance 'environment :bindings (initial-bindings)))
 
 (defvar *environment* (initial-environment))
 
@@ -185,36 +190,38 @@
 	  (environment-bindings (compute-new-environment-for-definition transformer def environment)))))
 |#
 
-(defmacro define-abstraction (name symbol &optional (superclasses '(form)) slots)
+(defmacro define-abstraction (name symbol &optional superclasses slots)
   `(progn
-     (defclass ,name ,superclasses ,slots (:metaclass form-class))
+     (defclass ,name ,(or superclasses '(form)) ,slots (:metaclass form-class))
      (setf *environment* (augment-environment *environment* ,symbol +kind-class+ (cl:find-class ',name)))
      (setf (get ',name 'symbol) ,symbol)
      ',name))
 
 ;;Basic forms
-(defconstant +abstraction-definition+ (intern "abstraction-definition" +symbol-treep+))
-(defconstant +quote+                  (intern "quote"                  +symbol-treep+))
-(defconstant +seq+                    (intern "seq"                    +symbol-treep+))
-(defconstant +slot-definition+        (intern "slot-definition"        +symbol-treep+))
+(defconstant +symbol-abstraction+           (intern "abstraction" +symbol-treep+))
+(defconstant +symbol-abstraction-slot+      (intern "slot"        +symbol-abstraction+))
+(defconstant +symbol-abstraction-slot-name+ (intern "name"        +symbol-abstraction-slot+))
+(defconstant +symbol-quote+                 (intern "quote"       +symbol-treep+))
+(defconstant +symbol-seq+                   (intern "seq"         +symbol-treep+))
+(defconstant +symbol-seq-elements+          (intern "elements"    +symbol-seq+))
 
-(define-abstraction quote +quote+ (form)
+(define-abstraction quote +symbol-quote+ ()
   ((form :initarg :form :reader quoted-form)))
 
 (defmethod transform (transformer (form quote) environment)
   (declare (ignore transformer))
   (values (quoted-form form) environment))
 
-(define-abstraction seq +seq+ (form)
-  ((elements :initarg :elements :accessor seq-elements)))
+(define-abstraction seq +symbol-seq+ ()
+  ((elements :initarg :elements :accessor seq-elements :initform (fset:seq) :slot-name +symbol-seq-elements+)))
 
-(define-abstraction slot-definition +slot-definition+ (form)
-  ((name :initarg :name :accessor slot-definition-name)))
+(define-abstraction slot-definition +symbol-abstraction-slot+ ()
+  ((name :initarg :name :accessor slot-definition-name :slot-name +symbol-abstraction-slot-name+)))
 
-(define-abstraction abstraction-definition +abstraction-definition+ (form)
-  ((name :initarg :name :accessor form-definition-name)
-   (direct-superclasses :initarg :direct-superclasses :accessor form-definition-direct-superclasses)
-   (slots :initarg :slots :accessor form-definition-slots)))
+(define-abstraction abstraction-definition +symbol-abstraction+ ()
+  ((name :initarg :name :accessor abstraction-definition-name)
+   (direct-superclasses :initarg :direct-superclasses :accessor abstraction-definition-direct-superclasses :initform (make-instance 'seq))
+   (slots :initarg :slots :accessor abstraction-definition-slots :initform (make-instance 'seq))))
 
 #| TODO Common forms
 (defclass conditional (form)
