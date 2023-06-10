@@ -11,12 +11,15 @@
    (space :accessor symbol-space :initarg :space :type symbol-space :initform nil)
    (properties :accessor symbol-properties :initform (fset:map) :type fset:map)))
 
+(defun ensure-symbol-space (symbol)
+  (or (symbol-space symbol)
+      (setf (symbol-space symbol) (make-instance 'symbol-space :name symbol))))
+
 (defun %intern (name space)
   (let ((the-name (string name))
 	(space (typecase space
 		 (symbol-space space)
-		 (symbol (or (symbol-space space)
-			     (setf (symbol-space space) (make-instance 'symbol-space :name space))))
+		 (symbol (ensure-symbol-space space))
 		 (t (error "Not a symbol space designator: ~S" space))))) ;TODO dedicated condition
     (or (%find-symbol the-name space)
 	(let ((symbol (make-instance 'symbol :name the-name :parent (symbol-space-name space))))
@@ -52,10 +55,11 @@
   (%find-symbol name space exclude))
 
 (defun print-symbol (symbol &optional (stream *standard-output*))
-  (let ((parent (symbol-parent symbol)))
-    (when (and parent (not (eq parent *symbol-space*)))
-      (print-symbol parent stream)
-      (princ ":" stream)))
+  (unless (eq (ignore-errors (find-symbol (symbol-name symbol))) symbol)
+    (let ((parent (symbol-parent symbol)))
+      (when (and parent (not (eq parent *symbol-space*)))
+	(print-symbol parent stream)
+	(princ ":" stream))))
   (princ (symbol-name symbol) stream)
   symbol)
 

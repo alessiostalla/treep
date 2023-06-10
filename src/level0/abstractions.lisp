@@ -12,7 +12,7 @@
 				  (when (listp slot)
 				    (let ((slot-name (getf (cdr slot) :slot-name)))
 				      (when slot-name
-					`(setf (slot-name (print (slot ',(car slot) ',name))) ,slot-name)))))
+					`(setf (slot-name (slot ',(car slot) ',name)) ,slot-name)))))
 				slots))))
      ',name))
 
@@ -23,6 +23,7 @@
 (defconstant +symbol-abstraction-slots+               (intern "slots"               +symbol-abstraction+))
 (defconstant +symbol-name+                            (intern "name"                +symbol-treep+))
 (defconstant +symbol-namespace+                       (intern "namespace"           +symbol-treep+))
+(defconstant +symbol-namespace-search-path+           (intern "search-path"         +symbol-namespace+))
 (defconstant +symbol-quote+                           (intern "quote"               +symbol-treep+))
 (defconstant +symbol-seq+                             (intern "seq"                 +symbol-treep+))
 (defconstant +symbol-seq-elements+                    (intern "elements"            +symbol-seq+))
@@ -51,7 +52,11 @@
 (define-abstraction named-child +symbol-with+ ()
   ((name  :initarg :name  :accessor named-child-name  :slot-name +symbol-name+)
    (value :initarg :value :accessor named-child-value :slot-name +symbol-with-value+)))
-   
+
+(define-abstraction namespace +symbol-namespace+ ()
+  ((name :reader namespace-name :slot-name +symbol-name+)
+   (search-path :reader namespace-search-path :slot-name +symbol-namespace-search-path+)))
+  
 #| TODO Common forms
 (defclass conditional (form)
   ((condition :initarg :condition :reader conditional-if)

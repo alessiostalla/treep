@@ -36,6 +36,18 @@
     (setf (form-class-definition class) form)
     (values class (augment-environment environment class-name +kind-class+ class))))
 
+(defmethod transform ((transformer simple-evaluator) (form namespace) environment)
+  (values
+   (if (slot-boundp form 'name)
+       (if (slot-boundp form 'search-path)
+	   (let ((ns (namespace-name form)))
+	     (setf (symbol-space-search-path (ensure-symbol-space ns))
+		   (the fset:seq (transform transformer (namespace-search-path form) environment)))
+	     ns)
+	   (setf *symbol-space* (namespace-name form)))
+       *symbol-space*)
+   environment))
+
 #|TODO move/redo
 
 (defclass box ()

@@ -9,7 +9,8 @@
 (defun repl (&key (evaluator (make-instance 'simple-evaluator)) (printer (make-instance 'printer)) (symbol-space +symbol-repl+))
   (let ((*symbol-space* symbol-space) (*environment* (copy-environment)))
     (cl:loop
-     (print-symbol *symbol-space*)
+     (let ((ss *symbol-space*) (*symbol-space* +root-symbol+))
+       (print-symbol ss))
      (princ "> ")
      (force-output)
      (restart-case
