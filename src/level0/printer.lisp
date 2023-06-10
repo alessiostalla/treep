@@ -1,7 +1,11 @@
 (in-package :treep-impl)
 
-(defmethod print-object ((object form) stream)
-  (let ((name (class-name (class-of object))))
+(defclass printer ()
+  ((stream :initarg :stream :initform *standard-output* :accessor printer-stream)))
+
+(defmethod transform ((transformer printer) (object form) environment)
+  (let ((name (class-name (class-of object)))
+	(stream (printer-stream transformer)))
     (princ "(" stream)
     (print-symbol (etypecase name
 		    (symbol name)
@@ -10,5 +14,13 @@
     (dolist (slot (remove-if (lambda (slot) (transient-slot? object slot))
 			     (closer-mop:class-slots (class-of object))))
       (princ " " stream)
-      (princ (cl:slot-value object (closer-mop:slot-definition-name slot)) stream))
+      (transform transformer (cl:slot-value object (closer-mop:slot-definition-name slot)) environment))
     (princ ")" stream)))
+
+(defmethod transform ((transformer printer) (object symbol) environment)
+  (declare (ignore environment))
+  (print-symbol object (printer-stream transformer)))
+
+(defmethod transform ((transformer printer) object environment)
+  (declare (ignore environment))
+  (print-object object (printer-stream transformer)))

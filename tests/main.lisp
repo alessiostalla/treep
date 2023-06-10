@@ -13,7 +13,7 @@
 
 (deftest symbols-test
   (testing "The default search path of a symbol includes its parent"
-    (ok (eq treep-impl::+seq+ (find-symbol "seq" treep-impl::+symbol-repl+)))))
+    (ok (eq treep-impl::+symbol-seq+ (find-symbol "seq" treep-impl::+symbol-repl+)))))
 
 #|
 (deftest forms-test

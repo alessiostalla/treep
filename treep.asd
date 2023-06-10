@@ -6,7 +6,7 @@
   :components ((:module "src/level0"
                 :components
                 ((:file "packages") (:file "symbols")
-		 (:file "abstractions")
+		 (:file "forms") (:file "abstractions")
 		 (:file "reader") (:file "load")
 		 (:file "printer")
 		 (:file "evaluator")

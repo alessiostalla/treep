@@ -44,7 +44,6 @@
 (defvar +root-symbol+ (make-instance 'symbol :name "")) ;;Note this should be a constant but making it a constant is complex
 (defvar +symbol-treep+ (%intern "treep" +root-symbol+))
 (defvar *symbol-space* +symbol-treep+)
-(defvar *read-symbol-syntax* nil)
 
 (defun intern (name &optional (space *symbol-space*))
   (%intern name space))
@@ -89,6 +88,7 @@
   (with-input-from-string (s s)
     (read-symbol s)))
 
+(defvar *read-symbol-syntax* nil)
 (defvar *symbol-dispatch-macro-character* nil)
 (defvar *symbol-dispatch-sub-character* nil)
 
