@@ -17,9 +17,23 @@
       (transform transformer (cl:slot-value object (closer-mop:slot-definition-name slot)) environment))
     (princ ")" stream)))
 
+(defmethod transform ((transformer printer) (object seq) environment)
+  (let ((stream (printer-stream transformer)))
+    (princ "(" stream)
+    (print-symbol +symbol-seq+ stream)
+    (fset:do-seq (el (seq-elements object))
+      (princ " " stream)
+      (transform transformer el environment))
+    (princ ")" stream)))
+
 (defmethod transform ((transformer printer) (object symbol) environment)
   (declare (ignore environment))
   (print-symbol object (printer-stream transformer)))
+
+(defmethod transform ((transformer printer) (object form-class) environment)
+  (if (form-class-definition object)
+      (transform transformer (form-class-definition object) environment)
+      (call-next-method)))
 
 (defmethod transform ((transformer printer) object environment)
   (declare (ignore environment))

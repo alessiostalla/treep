@@ -18,8 +18,9 @@
 			      name
 			      (compute-meanings)))))
 
-(defclass form-class (closer-mop:standard-class) ())
-(defclass form-slot-definition () ((slot-name :initarg :slot-name :accessor slot-name)))
+(defclass form-class (closer-mop:standard-class)
+  ((definition :initform nil :accessor form-class-definition)))
+(defclass form-slot-definition () ((slot-name :initarg :slot-name :initform nil :accessor slot-name)))
 (defclass direct-form-slot-definition (closer-mop:standard-direct-slot-definition form-slot-definition) ())
 (defclass effective-form-slot-definition (closer-mop:standard-effective-slot-definition form-slot-definition) ())
 
@@ -48,7 +49,7 @@
       (error "~A does not name a slot in ~A" name class)))
 
 (closer-mop:finalize-inheritance (find-class 'form))
-(setf (get 'parent 'symbol) +symbol-form-parent+)
+(setf (slot-name (slot 'parent 'form)) +symbol-form-parent+)
 
 (defgeneric transient-slot? (form slot))
 (defmethod transient-slot? (form (slot cl:symbol))

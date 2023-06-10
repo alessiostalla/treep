@@ -7,9 +7,10 @@
                 :components
                 ((:file "packages") (:file "symbols")
 		 (:file "forms") (:file "abstractions")
-		 (:file "reader") (:file "load")
+		 (:file "reader")
 		 (:file "printer")
 		 (:file "evaluator")
+		 (:file "loader")
 		 (:file "repl")
 		 ;;TODO (:file "lisp") (:file "object-system") (:file "level1-boot")
 		 )))

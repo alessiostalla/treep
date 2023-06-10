@@ -33,6 +33,7 @@
 	 (class (make-instance 'form-class :name class-name :direct-superclasses direct-superclasses
 					;TODO slots
 			       )))
+    (setf (form-class-definition class) form)
     (values class (augment-environment environment class-name +kind-class+ class))))
 
 #|TODO move/redo
