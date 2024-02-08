@@ -14,6 +14,18 @@ In Treep, we start by defining the abstractions that make up our language (known
  * Attach extra information to our abstractions (e.g. documentation, syntax rules, editor definitions, etc.)
  * Export the abstractions to other tools using APIs
 
+## Treep is an Evolution of Lisp
+
+At its core, McCarthy's LISP is the idea that we can represent all computation as lists of symbols. Therefore Lisp is a programming languages based on two fundamental data types and the functions to operate on them:
+ * Symbols (names);
+ * Cons cells, that make up linked lists.
+
+This design is marvelously simple yet powerful. Way simpler than how we are accustomed to think programming languages to be (parsers, compilers, etc.) yet surprisingly usable for writing large programs.
+
+Treep takes the same concepts, but specializes them for high-level language design, sacrificing their simplicity:
+ * Treep's symbols are hierarchical i.e. they act both as names and as namespaces (packages, etc.). java:lang:String is a valid Treep symbol. As such, they are not limited to a single shared space as in the original LISP, or a central shared library of packages as in more modern dialects such as Common Lisp, and we can use them to represent a wide variety of namespacing schemes.
+ * Treep forms are not based on lists (cons cells), instead they're made of objects (as in OOP). However, Treep defines a homogeneous syntax for objects, so that Lisp's homoiconicity – the fact that the meta-language and the language are the same – is preserved in Treep.
+
 ## Goals
 
  * Provide a set of object-oriented building blocks for designing and implementing formal languages

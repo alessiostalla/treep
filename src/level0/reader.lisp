@@ -12,6 +12,8 @@
        (error "Not inside a form")) ;;TODO more specific condition, better message
       ((digit-char-p ch)
        (cl:read stream))
+      ((char= ch #\")
+       (cl:read stream))
 ;;      ((and (or (char= ch #\+) (char= ch #\-) (char= ch #\.)) 
       (t (read-symbol stream)))))
 
@@ -24,7 +26,7 @@
 (defgeneric read-form-instance (form stream environment))
 
 (defmethod read-form-instance (form stream environment)
-  (let ((slots (remove-if (lambda (slot) (transient-slot? form slot))
+  (let ((slots (remove-if (lambda (slot) (internal-slot? form slot))
 			  (closer-mop:class-slots (class-of form)))))
     (cl:loop
      :while slots
@@ -32,6 +34,7 @@
 	   (consume-whitespace stream)
 	   (when (char= (peek-char t stream) #\))
 	     (return))
+	   ;; TODO give the form a chance to read the slot, e.g. in a different namespace
 	   (let* ((subform (read-form stream environment))
 		  (slot (if (typep subform 'named-child)
 			    (or (find (named-child-name subform) slots :key #'slot-name)
