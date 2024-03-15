@@ -26,7 +26,7 @@
 				    (into (intern (string-downcase (cl:symbol-name symbol)) space))
 				    (environment *environment*))
   (when (fboundp symbol)
-    (let* ((rest (make-instance 'symbol :name "args"))
+    (let* ((rest (symbol "args"))
 	   (function (make-instance 'function
 				    :lambda-list (fset:seq (make-instance 'rest-function-argument :name rest))
 				    :expression (make-instance 'lisp

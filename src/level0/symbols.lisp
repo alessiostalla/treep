@@ -5,11 +5,27 @@
    (contents :accessor symbol-space-contents :type fset:map :initform (fset:map))
    (search-path :accessor symbol-space-search-path :initarg :search-path :type fset:seq :initform (fset:seq))))
 
-(defclass symbol ()
-  ((name :reader symbol-name :initarg :name :type string)
-   (parent :reader symbol-parent :initarg :parent :type symbol :initform nil)
-   (space :accessor symbol-space :initarg :space :type symbol-space :initform nil)
-   (properties :accessor symbol-properties :initform (fset:map) :type fset:map)))
+(defun symbol (name &key parent)
+  (let ((symbol (make-symbol name)))
+    (when parent
+      (setf (getf (symbol-plist symbol) 'parent) parent))
+    symbol))
+
+(defun symbol-name (symbol)
+  (cl:symbol-name symbol))
+
+(defun symbol-parent (symbol)
+  (getf (symbol-plist symbol) 'parent))
+
+(defun symbol-space (symbol)
+  (getf (symbol-plist symbol) 'space))
+(defun (setf symbol-space) (space symbol)
+  (setf (getf (symbol-plist symbol) 'space) space))
+
+(defun symbol-properties (symbol)
+  (or (getf (symbol-plist symbol) 'properties) (fset:map)))
+(defun (setf symbol-properties) (properties symbol)
+  (setf (getf (symbol-plist symbol) 'properties) properties))
 
 (defun ensure-symbol-space (symbol)
   (or (symbol-space symbol)
@@ -22,7 +38,7 @@
 		 (symbol (ensure-symbol-space space))
 		 (t (error "Not a symbol space designator: ~S" space))))) ;TODO dedicated condition
     (or (%find-symbol the-name space)
-	(let ((symbol (make-instance 'symbol :name the-name :parent (symbol-space-name space))))
+	(let ((symbol (symbol the-name :parent (symbol-space-name space))))
 	  (setf (symbol-space symbol) ;;TODO make this the default, but optional 
 		(make-instance 'symbol-space :name symbol :search-path (fset:seq space)))
 	  (setf (symbol-space-contents space)
@@ -44,8 +60,8 @@
 	      (let ((symbol (%find-symbol name s exclude)))
 		(when symbol (return-from %find-symbol symbol)))))))))
 
-(defvar +root-symbol+ (make-instance 'symbol :name "")) ;;Note this should be a constant but making it a constant is complex
-(defvar +symbol-treep+ (%intern "treep" +root-symbol+))
+(defconstant +root-symbol+ (symbol ""))
+(defvar +symbol-treep+ (%intern "treep" +root-symbol+)) ;;Note this should be a constant but making it a constant is complex
 (defvar *symbol-space* +symbol-treep+)
 
 (defun intern (name &optional (space *symbol-space*))
@@ -129,4 +145,4 @@
      ,@body))
 
 (defun symbol? (object)
-  (typep object 'symbol))
+  (typep object 'cl:symbol))
