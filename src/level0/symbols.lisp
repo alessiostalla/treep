@@ -5,11 +5,12 @@
    (contents :accessor symbol-space-contents :type fset:map :initform (fset:map))
    (search-path :accessor symbol-space-search-path :initarg :search-path :type fset:seq :initform (fset:seq))))
 
-(defun symbol (name &key parent)
-  (let ((symbol (make-symbol name)))
-    (when parent
-      (setf (getf (symbol-plist symbol) 'parent) parent))
-    symbol))
+(eval-when (:compile-toplevel :load-toplevel)
+  (defun symbol (name &key parent)
+    (let ((symbol (make-symbol name)))
+      (when parent
+	(setf (getf (symbol-plist symbol) 'parent) parent))
+      symbol)))
 
 (defun symbol-name (symbol)
   (cl:symbol-name symbol))
@@ -62,8 +63,9 @@
 	      (let ((symbol (%find-symbol name s exclude)))
 		(when symbol (return-from %find-symbol symbol)))))))))
 
-(defconstant +root-symbol+ (symbol ""))
-(defvar +symbol-treep+ (%intern "treep" +root-symbol+)) ;;Note this should be a constant but making it a constant is complex
+;;Note these should be constants but making them constant is complex
+(defvar +root-symbol+ (symbol ""))
+(defvar +symbol-treep+ (%intern "treep" +root-symbol+))
 (defvar *symbol-space* +symbol-treep+)
 
 (defun intern (name &optional (space *symbol-space*))
@@ -113,23 +115,6 @@
 (defvar *read-symbol-syntax* nil)
 (defvar *symbol-dispatch-macro-character* nil)
 (defvar *symbol-dispatch-sub-character* nil)
-
-(defmethod print-object ((object symbol) stream)
-  (cond
-    (*symbol-dispatch-macro-character*
-     (princ *symbol-dispatch-macro-character* stream)
-     (when *symbol-dispatch-sub-character*
-       (princ *symbol-dispatch-sub-character* stream))
-     (print-symbol object stream))
-    (*read-eval*
-     (princ "#.(" stream)
-     (write 'read-symbol-from-string :stream stream)
-     (princ " \"" stream)
-     (print-symbol object stream)
-     (princ "\")" stream))
-    (t (print-unreadable-object (object stream :type t :identity t)
-	 (print-symbol object stream))))
-  nil)
 
 (defmacro with-read-symbol-syntax ((&optional (dispatch-char #\#) (sub-char #\^)) &body body)
   `(let ((*readtable* (copy-readtable))

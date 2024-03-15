@@ -65,8 +65,8 @@
   (slot-internal? slot))
 (defmethod internal-slot? ((form cl:class) (slot cl:symbol))
   (slot-internal? (slot slot form)))
-(defmethod internal-slot? ((form symbol) slot)
-  ;; TODO avoid make-instance
+(defmethod internal-slot? ((form cl:symbol) slot)
+  ;; TODO avoid make-instance, use prototype instead
   (internal-slot? (make-instance form) slot))
 
 (defgeneric init-subform (parent name child))
