@@ -31,6 +31,8 @@
   (or (symbol-space symbol)
       (setf (symbol-space symbol) (make-instance 'symbol-space :name symbol))))
 
+(deftype symbol () 'cl:symbol)
+
 (defun %intern (name space)
   (let ((the-name (string name))
 	(space (typecase space
