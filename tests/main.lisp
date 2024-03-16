@@ -12,6 +12,14 @@
     (ok (= 1 1))))
 
 (deftest symbols-test
+  (testing "We can find imported symbols"
+    (ok (eq treep-impl::+symbol-treep+ (find-symbol "treep" treep-impl::+root-symbol+)))
+    (ok (eq treep-impl::+symbol-seq+ (find-symbol "seq" treep-impl::+symbol-treep+))))
+  (testing "Symbol identity persists through file compilation"
+    (ok (eq (load-time-value (intern "test" treep-impl::+root-symbol+)) (intern "test" treep-impl::+root-symbol+)))
+    ;; Note compiling then loading a compiled file doesn't preserve the identity of uninterned symbols, so if we want to generate
+    ;; Lisp s-expressions and dump those to a file to file-compile it, a strategy is needed to replace literal symbols with calls to intern.
+    (ok (not (eq '#.(intern "test" treep-impl::+root-symbol+) (intern "test" treep-impl::+root-symbol+)))))
   (testing "The default search path of a symbol includes its parent"
     (ok (eq treep-impl::+symbol-seq+ (find-symbol "seq" treep-impl::+symbol-repl+)))))
 

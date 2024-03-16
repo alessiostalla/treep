@@ -5,7 +5,8 @@
   :depends-on ("closer-mop" "fset")
   :components ((:module "src/level0"
                 :components
-                ((:file "packages") (:file "symbols")
+                ((:file "packages")
+		 (:file "symbols") (:file "symbols-io")
 		 (:file "forms") (:file "abstractions")
 		 (:file "reader")
 		 (:file "printer")
