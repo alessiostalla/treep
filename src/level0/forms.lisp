@@ -37,8 +37,9 @@
   (declare (ignore initargs))
   (find-class 'effective-form-slot-definition))
 
-(defconstant +symbol-form+        (intern "form"   +symbol-treep+))
-(defconstant +symbol-form-parent+ (intern "parent" +symbol-form+))
+;; These ought to be constant but SBCL complains about redefinition because they're not identical between compile-time and load-time
+(defvar +symbol-form+        (intern "form"   +symbol-treep+))
+(defvar +symbol-form-parent+ (intern "parent" +symbol-form+))
 
 (defclass form ()
   ((parent :accessor form-parent))
