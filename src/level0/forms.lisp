@@ -38,6 +38,7 @@
   (find-class 'effective-form-slot-definition))
 
 ;; These ought to be constant but SBCL complains about redefinition because they're not identical between compile-time and load-time
+;; TODO rewrite these as imports of Lisp symbols
 (defvar +symbol-form+        (intern "form"   +symbol-treep+))
 (defvar +symbol-form-parent+ (intern "parent" +symbol-form+))
 
