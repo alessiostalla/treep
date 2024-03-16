@@ -26,7 +26,7 @@
       (transform transformer el environment))
     (princ ")" stream)))
 
-(defmethod transform ((transformer printer) (object symbol) environment)
+(defmethod transform ((transformer printer) (object cl:symbol) environment)
   (declare (ignore environment))
   (print-symbol object (printer-stream transformer)))
 
