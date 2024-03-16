@@ -1,7 +1,7 @@
 (in-package :treep-impl)
 
-(defvar +symbol-repl+      (intern "repl" +symbol-treep+))
-(defvar +symbol-repl-quit+ (intern "quit" +symbol-repl+))
+(defconstant +symbol-repl+      (import-lisp-symbol 'repl +symbol-treep+))
+(defconstant +symbol-repl-quit+ (import-lisp-symbol 'quit +symbol-repl+))
 
 ;;TODO expose to the REPL as just "quit"
 (define-abstraction quit +symbol-repl-quit+)

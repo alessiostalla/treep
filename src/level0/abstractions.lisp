@@ -16,21 +16,19 @@
 				slots))))
      ',name))
 
-;; Basic forms.
-;; These ought to be constant but SBCL complains about redefinition because they're not identical between compile-time and load-time
-;; TODO rewrite these as imports of Lisp symbols
-(defvar +symbol-abstraction+                     (intern "abstraction"         +symbol-treep+))
-(defvar +symbol-abstraction-direct-superclasses+ (intern "direct-superclasses" +symbol-abstraction+))
-(defvar +symbol-abstraction-slot+                (intern "slot"                +symbol-abstraction+))
-(defvar +symbol-abstraction-slots+               (intern "slots"               +symbol-abstraction+))
-(defvar +symbol-name+                            (intern "name"                +symbol-treep+))
-(defvar +symbol-namespace+                       (intern "namespace"           +symbol-treep+))
-(defvar +symbol-namespace-search-path+           (intern "search-path"         +symbol-namespace+))
-(defvar +symbol-quote+                           (intern "quote"               +symbol-treep+))
-(defvar +symbol-seq+                             (intern "seq"                 +symbol-treep+))
-(defvar +symbol-seq-elements+                    (intern "elements"            +symbol-seq+))
-(defvar +symbol-with+                            (intern "with"                +symbol-treep+))
-(defvar +symbol-with-value+                      (intern "value"               +symbol-with+))
+;;Basic forms
+(defconstant +symbol-abstraction+                     (import-lisp-symbol 'abstraction         +symbol-treep+))
+(defconstant +symbol-abstraction-direct-superclasses+ (import-lisp-symbol 'direct-superclasses +symbol-abstraction+))
+(defconstant +symbol-abstraction-slot+                (import-lisp-symbol 'slot                +symbol-abstraction+))
+(defconstant +symbol-abstraction-slots+               (import-lisp-symbol 'slots               +symbol-abstraction+))
+(defconstant +symbol-name+                            (import-lisp-symbol 'name                +symbol-treep+))
+(defconstant +symbol-namespace+                       (import-lisp-symbol 'namespace           +symbol-treep+))
+(defconstant +symbol-namespace-search-path+           (import-lisp-symbol 'search-path         +symbol-namespace+))
+(defconstant +symbol-quote+                           (import-lisp-symbol 'quote               +symbol-treep+))
+(defconstant +symbol-seq+                             (import-lisp-symbol 'seq                 +symbol-treep+))
+(defconstant +symbol-seq-elements+                    (import-lisp-symbol 'elements            +symbol-seq+))
+(defconstant +symbol-with+                            (import-lisp-symbol 'with                +symbol-treep+))
+(defconstant +symbol-with-value+                      (import-lisp-symbol 'value               +symbol-with+))
 
 (define-abstraction quote +symbol-quote+ ()
   ((form :initarg :form :reader quoted-form)))

@@ -5,12 +5,19 @@
    (contents :accessor symbol-space-contents :type fset:map :initform (fset:map))
    (search-path :accessor symbol-space-search-path :initarg :search-path :type fset:seq :initform (fset:seq))))
 
-(eval-when (:compile-toplevel :load-toplevel)
-  (defun symbol (name &key parent)
-    (let ((symbol (make-symbol name)))
-      (when parent
-	(setf (getf (symbol-plist symbol) 'parent) parent))
-      symbol)))
+(defun symbol (name &key parent)
+  (let ((symbol (make-symbol name)))
+    (when parent
+      (setf (getf (symbol-plist symbol) 'parent) parent))
+    symbol))
+
+(defun import-lisp-symbol (symbol parent &key (name (string-downcase (cl:symbol-name symbol))))
+  (let ((existing-parent (symbol-parent symbol)))
+    (when (and existing-parent (not (eq existing-parent parent)))
+      (error "Symbol ~A already has a different parent: ~A" symbol existing-parent))) ;; TODO specific error, print symbols correctly
+  (setf (getf (symbol-plist symbol) 'parent) parent)
+  (%record-symbol symbol (ensure-symbol-space parent) name)
+  symbol)
 
 (defun symbol-name (symbol)
   (cl:symbol-name symbol))
@@ -34,6 +41,14 @@
 
 (deftype symbol () 'cl:symbol)
 
+(defun %record-symbol (symbol space &optional (name (symbol-name symbol)))
+  ;; TODO check if another symbol already exists under the same name
+  (setf (symbol-space symbol) ;;TODO make this the default, but optional 
+	(make-instance 'symbol-space :name symbol :search-path (fset:seq space)))
+  (setf (symbol-space-contents space)
+	(fset:with (symbol-space-contents space) name symbol))
+  symbol)
+
 (defun %intern (name space)
   (let ((the-name (string name))
 	(space (typecase space
@@ -41,12 +56,7 @@
 		 (symbol (ensure-symbol-space space))
 		 (t (error "Not a symbol space designator: ~S" space))))) ;TODO dedicated condition
     (or (%find-symbol the-name space)
-	(let ((symbol (symbol the-name :parent (symbol-space-name space))))
-	  (setf (symbol-space symbol) ;;TODO make this the default, but optional 
-		(make-instance 'symbol-space :name symbol :search-path (fset:seq space)))
-	  (setf (symbol-space-contents space)
-		(fset:with (symbol-space-contents space) the-name symbol))
-	  symbol))))
+	(%record-symbol (symbol the-name :parent (symbol-space-name space)) space))))
 
 (defun %find-symbol (name space &optional exclude)
   (let ((the-name (string name))
@@ -62,74 +72,6 @@
 	      (push s exclude)
 	      (let ((symbol (%find-symbol name s exclude)))
 		(when symbol (return-from %find-symbol symbol)))))))))
-
-;;Note these should be constants but making them constant is complex
-(defvar +root-symbol+ (symbol ""))
-(defvar +symbol-treep+ (%intern "treep" +root-symbol+))
-(defvar *symbol-space* +symbol-treep+)
-
-(defun intern (name &optional (space *symbol-space*))
-  (%intern name space))
-
-(defun find-symbol (name &optional (space *symbol-space*) exclude)
-  (%find-symbol name space exclude))
-
-(defun print-symbol (symbol &optional (stream *standard-output*))
-  (unless (eq (ignore-errors (find-symbol (symbol-name symbol))) symbol)
-    (let ((parent (symbol-parent symbol)))
-      (when (and parent (not (eq parent *symbol-space*)))
-	(print-symbol parent stream)
-	(princ ":" stream))))
-  (princ (symbol-name symbol) stream)
-  symbol)
-
-(defun read-symbol (stream &optional (intern-function #'intern))
-  (let* ((separator #\:)
-	 (symbol-space (if (eql (peek-char t stream) separator)
-			   (progn (read-char stream) +root-symbol+)
-			   *symbol-space*))
-	 continue
-	 (symbol-name (with-output-to-string (s)
-			(cl:loop
-			   (let ((whitespace '(#\Space #\Newline #\Backspace #\Tab #\Linefeed #\Page #\Return #\Rubout))
-				 (terminating-chars '(#\( #\) #\# #\[ #\]))
-				 (ch (read-char stream nil)))
-			     (cond
-			       ((eql ch separator)
-				(setf continue t)
-				(return))
-			       ((or (null ch) (member ch whitespace :test #'eql) (member ch terminating-chars :test #'eql))
-				(when ch (unread-char ch stream))
-				(return))
-			       (t (princ ch s)))))))
-	 (symbol (funcall intern-function symbol-name symbol-space)))
-    (if continue
-	(let ((*symbol-space* symbol))
-	  (read-symbol stream intern-function))
-	symbol)))
-
-(defun read-symbol-from-string (s)
-  (with-input-from-string (s s)
-    (read-symbol s)))
-
-(defvar *read-symbol-syntax* nil)
-(defvar *symbol-dispatch-macro-character* nil)
-(defvar *symbol-dispatch-sub-character* nil)
-
-(defmacro with-read-symbol-syntax ((&optional (dispatch-char #\#) (sub-char #\^)) &body body)
-  `(let ((*readtable* (copy-readtable))
-	 (*symbol-dispatch-macro-character* ,dispatch-char)
-	 (*symbol-dispatch-sub-character* ,sub-char))
-     ,(if sub-char
-	  `(set-dispatch-macro-character ,dispatch-char ,sub-char
-					 (lambda (stream sub-char infix)
-					   (declare (ignore sub-char infix))
-					   (read-symbol stream)))
-	  `(set-macro-character ,dispatch-char
-				(lambda (stream char)
-				  (declare (ignore char))
-				  (read-symbol stream))))
-     ,@body))
 
 (defun symbol? (object)
   (typep object 'cl:symbol))

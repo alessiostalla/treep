@@ -11,7 +11,7 @@
 		    (symbol name)
 		    (cl:symbol (get name 'symbol)))
 		  stream)
-    (dolist (slot (remove-if (lambda (slot) (transient-slot? object slot))
+    (dolist (slot (remove-if (lambda (slot) (internal-slot? object slot))
 			     (closer-mop:class-slots (class-of object))))
       (princ " " stream)
       (transform transformer (cl:slot-value object (closer-mop:slot-definition-name slot)) environment))

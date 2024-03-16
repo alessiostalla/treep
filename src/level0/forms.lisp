@@ -1,8 +1,8 @@
 (in-package :treep-impl)
 
-(defconstant +kind-class+    (intern "class"    +symbol-treep+))
-(defconstant +kind-function+ (intern "function" +symbol-treep+))
-(defconstant +kind-variable+ (intern "variable" +symbol-treep+))
+(defconstant +kind-class+    (import-lisp-symbol 'class    +symbol-treep+))
+(defconstant +kind-function+ (import-lisp-symbol 'function +symbol-treep+))
+(defconstant +kind-variable+ (import-lisp-symbol 'variable +symbol-treep+))
 
 (defclass environment ()
   ((bindings :initform (fset:map) :initarg :bindings :accessor environment-bindings)))
@@ -37,10 +37,8 @@
   (declare (ignore initargs))
   (find-class 'effective-form-slot-definition))
 
-;; These ought to be constant but SBCL complains about redefinition because they're not identical between compile-time and load-time
-;; TODO rewrite these as imports of Lisp symbols
-(defvar +symbol-form+        (intern "form"   +symbol-treep+))
-(defvar +symbol-form-parent+ (intern "parent" +symbol-form+))
+(defconstant +symbol-form+        (import-lisp-symbol 'form   +symbol-treep+))
+(defconstant +symbol-form-parent+ (import-lisp-symbol 'parent +symbol-form+))
 
 (defclass form ()
   ((parent :accessor form-parent))
