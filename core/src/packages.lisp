@@ -1,2 +1,4 @@
 (defpackage treep
-  (:use :cl))
+  (:use :cl)
+  (:export #:form #:form-definition
+	   #:read-form))
