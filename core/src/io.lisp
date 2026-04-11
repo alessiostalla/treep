@@ -46,10 +46,12 @@
 		  ((or (alpha-char-p ch) (char= ch #\_) (char= ch #\-) (char= ch #\+))
 		   (setf simple-name (concatenate 'string simple-name (string (read-char stream t)))))
 		  ((char= ch #\:)
-		   (progn
-		     (push simple-name name)
-		     (setf simple-name "")
-		     (read-char stream t)))
+		   (if (> (length simple-name) 0)
+		       (progn
+			 (push simple-name name)
+			 (setf simple-name "")
+			 (read-char stream t))
+		       (error "The :: sequence is invalid")))
 		  (t
 		   (progn
 		     (when (> (length simple-name) 0)

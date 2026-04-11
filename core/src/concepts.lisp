@@ -28,18 +28,36 @@
 
 (deftype reference-to (type &key (by 'string)) (list 'or by type))
 
-(defclass language ()
+(defclass language (form)
   ((name :initarg :name :accessor language-name :initform (error "Language name is required"))
-   (concepts :reader concepts :initform (make-hash-table))))
+   (concepts :reader concepts :initform (make-hash-table :test #'equal))
+   (used-languages :accessor used-languages :initarg :used-languages :initform nil))
+  (:metaclass concept))
 
-(defvar *language* (make-instance 'language :name "default"))
+(defvar *treep* (make-instance 'language :name "treep"))
+(defvar *language* (make-instance 'language :name "default" :used-languages (list *treep*)))
 
 (defmethod find-concept ((name string) (language language))
   (gethash name (concepts language)))
 
+(defmethod (setf find-concept) ((concept concept) (name string) (language language))
+  (setf (gethash name (concepts language)) concept))
+
+;; Note: we can't use (setf find-concept) because concept isn't itself a concept
+(setf (gethash "concept" (concepts *treep*)) (find-class 'concept))
+(setf (find-concept "language" *treep*) (find-class 'language))
+
 (defun lookup-concept (name &optional (language *language*))
   (if name
-      (if (cdr name)
-	  (error "TODO: lookup of qualified name not supported")
-	  (find-concept (car name) language))
+      (let ((language
+	     (if (cadr name)
+		 (or
+		  (find (string-upcase (car name)) (used-languages language)
+			:key (lambda (lang) (string-upcase (language-name lang)))
+			 :test #'string=)
+		  (error "No language named ~S found in ~S" (car name) language))
+		 language)))
+	(if (cddr name)
+	    (error "Not a valid concept path: ~S" name)
+	    (find-concept (or (cadr name) (car name)) language)))
       nil))
