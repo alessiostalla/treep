@@ -8,9 +8,9 @@
   (loop :do (let ((ch (peek-char t stream)))
 	      (cond
 		((or (char= ch #\Space) (char= ch #\Tab) (char= ch #\Linefeed) (char= ch #\Return)) (read-char stream t))
-		(t (return-from 'consume-space))))))
+		(t (return))))))
 
-(defun read-form (stream language)
+(defun read-form (stream &optional (language *language*))
   (consume-space stream)
   (let ((ch (peek-char t stream)))
     (cond
@@ -31,13 +31,27 @@
     (unless (char= ch #\()
       (error 'unexpected-character ch)))
   (let* ((name (read-name stream))
-	 (form-def (lookup-form language name 'definitions)))))
+	 (concept (lookup-concept name language)))
+    (if concept
+	(let ((form (make-instance concept)))
+	  ;; TODO fill the form
+	  form)
+	(error "Unknown concept ~S" name))))
 
 (defun read-name (stream)
   (consume-space stream)
-  (let ((name ""))
+  (let ((simple-name "") (name nil))
     (loop :do (let ((ch (peek-char t stream)))
 		(cond
 		  ((or (alpha-char-p ch) (char= ch #\_) (char= ch #\-) (char= ch #\+))
-		   (setf name (concatenate 'string name (string (read-char stream t)))))
-		  (t (return-from 'read-name name)))))))
+		   (setf simple-name (concatenate 'string simple-name (string (read-char stream t)))))
+		  ((char= ch #\:)
+		   (progn
+		     (push simple-name name)
+		     (setf simple-name "")
+		     (read-char stream t)))
+		  (t
+		   (progn
+		     (when (> (length simple-name) 0)
+		       (push simple-name name))
+		     (return (nreverse name)))))))))
