@@ -3,7 +3,8 @@
 (defclass concept (clutter:standard-class-with-attributes)
   ((definition :initform nil :accessor concept-definition)))
 (defclass concept-slot-definition (clutter:-with-attributes)
-  ((kind :initarg :kind :initform :attribute :accessor slot-kind)))
+  ((name :initarg :feature-name :initform nil :accessor feature-name)
+   (kind :initarg :kind :initform :attribute :accessor feature-kind)))
 (defclass direct-concept-slot-definition (clutter::direct-slot-definition-with-attributes concept-slot-definition) ())
 (defclass effective-concept-slot-definition (clutter::effective-slot-definition-with-attributes concept-slot-definition) ())
 
@@ -20,18 +21,27 @@
   (declare (ignore initargs))
   (find-class 'effective-concept-slot-definition))
 
+(defmethod closer-mop:compute-effective-slot-definition ((class concept) name direct-slot-definitions)
+  (declare (ignorable class name))
+  (let ((result (call-next-method))
+	(most-specific (car direct-slot-definitions)))
+    (when (typep most-specific 'concept-slot-definition)
+      (setf (feature-name result) (feature-name most-specific))
+      (setf (feature-kind result) (feature-kind most-specific)))
+    result))
+
 (defstruct container form slot)
 
 (defclass form (clutter:-with-attributes)
-  ((container :accessor form-container :initform nil :kind :internal))
+  ((container :accessor form-container :initform nil :kind :internal :feature-name "container"))
   (:metaclass concept))
 
 (deftype reference-to (type &key (by 'string)) (list 'or by type))
 
 (defclass language (form)
-  ((name :initarg :name :accessor language-name :initform (error "Language name is required"))
-   (concepts :reader concepts :initform (make-hash-table :test #'equal))
-   (used-languages :accessor used-languages :initarg :used-languages :initform nil))
+  ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
+   (concepts :reader concepts :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts")
+   (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :internal :feature-name "used-languages"))
   (:metaclass concept))
 
 (defvar *treep* (make-instance 'language :name "treep"))
@@ -61,3 +71,22 @@
 	    (error "Not a valid concept path: ~S" name)
 	    (find-concept (or (cadr name) (car name)) language)))
       nil))
+
+(defgeneric lookup-feature (name object)
+  (:documentation "Looks up a feature by name"))
+
+(defmethod lookup-feature (name object)
+  (lookup-feature name (class-of object)))
+
+(defmethod lookup-feature ((name list) (concept concept))
+  (if (cdr name)
+      (error "Qualified feature name not supported yet: ~S" name)
+      (lookup-feature (car name) concept)))
+
+(defmethod lookup-feature ((name string) (concept concept))
+  (find name (reverse (remove-if-not (lambda (feature)
+				       (and (typep feature 'concept-slot-definition)
+					    (not (null (feature-name feature)))))
+				     (closer-mop:class-slots concept)))
+	:key #'feature-name
+	:test #'string=))
