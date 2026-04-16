@@ -14,12 +14,14 @@
 (defsystem "treep/tests"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("treep" "rove")
+  :depends-on ("treep" "try")
   :components ((:module "core/tests"
                 :components
-                ((:file "main"))))
+                ((:file "packages")
+		 (:file "io")
+		 (:file "suite"))))
   :description "Test system for treep"
-  :perform (test-op (op c) (symbol-call :rove :run c)))
+  :perform (test-op (op c) (symbol-call :treep/tests :run)))
 
 (defsystem "treep/server"
   :version "0.1.0"

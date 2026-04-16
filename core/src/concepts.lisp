@@ -44,17 +44,27 @@
    (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :internal :feature-name "used-languages"))
   (:metaclass concept))
 
+(defclass concept-definition (form)
+  ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
+   (implementation :reader concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
+  (:metaclass concept))
+
 (defvar *treep* (make-instance 'language :name "treep"))
 (defvar *language* (make-instance 'language :name "default" :used-languages (list *treep*)))
 
 (defmethod find-concept ((name string) (language language))
   (gethash name (concepts language)))
 
-(defmethod (setf find-concept) ((concept concept) (name string) (language language))
+(defmethod (setf find-concept) ((concept concept-definition) (name string) (language language))
   (setf (gethash name (concepts language)) concept))
+(defmethod (setf find-concept) ((concept concept) (name string) (language language))
+  (setf (find-concept name language)
+	(or (concept-definition concept) (error "Concept ~S doesn't have a definition" concept))))
 
-;; Note: we can't use (setf find-concept) because concept isn't itself a concept
-(setf (gethash "concept" (concepts *treep*)) (find-class 'concept))
+(setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept-definition" :implementation (find-class 'concept-definition)))
+(setf (concept-definition (find-class 'language)) (make-instance 'concept-definition :name "language" :implementation (find-class 'language)))
+
+(setf (find-concept "concept" *treep*) (find-class 'concept-definition))
 (setf (find-concept "language" *treep*) (find-class 'language))
 
 (defun lookup-concept (name &optional (language *language*))
