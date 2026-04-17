@@ -93,6 +93,10 @@
       (error "Qualified feature name not supported yet: ~S" name)
       (lookup-feature (car name) concept)))
 
+(defmethod lookup-feature (name (class class))
+  (declare (ignore name))
+  (error "Not a concept: ~S" class))
+
 (defmethod lookup-feature ((name string) (concept concept))
   (find name (reverse (remove-if-not (lambda (feature)
 				       (and (typep feature 'concept-slot-definition)
