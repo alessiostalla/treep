@@ -60,17 +60,9 @@
 	   (progn
 	     (read-char stream)
 	     (return))
-	   (let* ((name (read-name stream))
-		  (slot (lookup-feature name form)))
-	     (if slot
-		 (let ((subform (read-form stream language)))
-		   (setf (slot-value form (closer-mop:slot-definition-name slot)) subform)
-		   (labels ((set-parent (f)
-			      (typecase f
-				(form (setf (form-container form) (make-container :form form :slot slot)))
-				(list (map nil #'set-parent f)))))
-		     (set-parent subform)))
-		 (error "Unknown feature ~S in ~S" name form))))))
+	   (let ((name (read-name stream))
+		 (subform (read-form stream language)))
+	     (set-feature form name subform)))))
   (form-filled form))
 
 (defgeneric form-filled (form)

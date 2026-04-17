@@ -4,7 +4,8 @@
   ((definition :initform nil :accessor concept-definition)))
 (defclass concept-slot-definition (clutter:-with-attributes)
   ((name :initarg :feature-name :initform nil :accessor feature-name)
-   (kind :initarg :kind :initform :attribute :accessor feature-kind)))
+   (kind :initarg :kind :initform :attribute :accessor feature-kind)
+   (multiplicity :initarg :multiplicity :initform 1 :accessor feature-multiplicity)))
 (defclass direct-concept-slot-definition (clutter::direct-slot-definition-with-attributes concept-slot-definition) ())
 (defclass effective-concept-slot-definition (clutter::effective-slot-definition-with-attributes concept-slot-definition) ())
 
@@ -27,7 +28,8 @@
 	(most-specific (car direct-slot-definitions)))
     (when (typep most-specific 'concept-slot-definition)
       (setf (feature-name result) (feature-name most-specific))
-      (setf (feature-kind result) (feature-kind most-specific)))
+      (setf (feature-kind result) (feature-kind most-specific))
+      (setf (feature-multiplicity result) (feature-multiplicity most-specific)))
     result))
 
 (defstruct container form slot)
@@ -40,7 +42,7 @@
 
 (defclass language (form)
   ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
-   (concepts :reader concepts :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts")
+   (concepts :reader concepts :initform (make-hash-table :test #'equal) :kind :containment :feature-name "concepts")
    (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :internal :feature-name "used-languages"))
   (:metaclass concept))
 
@@ -104,3 +106,24 @@
 				     (closer-mop:class-slots concept)))
 	:key #'feature-name
 	:test #'string=))
+
+(defun set-feature (form feature value)
+  (let ((feature (typecase feature
+		   (concept-slot-definition feature)
+		   (symbol
+		    (find feature
+			  (closer-mop:class-slots (class-of form))
+			  :key #'closer-mop:slot-definition-name))
+		   ((or string list) (lookup-feature feature form))
+		   (t (error "Not a valid feature designator: ~S" feature)))))
+    (unless feature
+      (error "Unknown feature ~S in ~S" feature form))
+    ;; TODO check multiplicity
+    (setf (slot-value form (closer-mop:slot-definition-name feature)) value)
+    (when (eq (feature-kind feature) :containment)
+      (labels ((set-parent (f)
+		 (typecase f
+		   (form (setf (form-container form) (make-container :form form :slot feature)))
+		   (list (map nil #'set-parent f)))))
+	(set-parent value)))
+    value))
