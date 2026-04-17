@@ -107,3 +107,19 @@
 		     (when (> (length simple-name) 0)
 		       (push simple-name name))
 		     (return (nreverse name)))))))))
+
+(defun load (stream-designator &optional consumer)
+  (typecase stream-designator
+    (stream
+     (let (contents)
+       (loop
+	  :while (peek-char t stream-designator nil)
+	  :do (let ((form (read-form stream)))
+		(if consumer
+		    (funcall consumer form)
+		    (push form contents))))
+       (nreverse contents)))
+    (string
+     (with-open-file (stream stream-designator)
+       (load stream)))
+    (t (error "Not a stream designator: ~S" stream-designator))))
