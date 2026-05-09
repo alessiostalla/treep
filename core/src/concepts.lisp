@@ -48,7 +48,13 @@
 
 (defclass concept-definition (form)
   ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
+   (features :reader features :initform (list) :kind :containment :feature-name "features")
+   ;; Used by the reader to instantiate the concept
    (implementation :reader concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
+  (:metaclass concept))
+
+(defclass feature (form)
+  ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute))
   (:metaclass concept))
 
 (defvar *treep* (make-instance 'language :name "treep"))
@@ -63,10 +69,13 @@
   (setf (find-concept name language)
 	(or (concept-definition concept) (error "Concept ~S doesn't have a definition" concept))))
 
-(setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept-definition" :implementation (find-class 'concept-definition)))
-(setf (concept-definition (find-class 'language)) (make-instance 'concept-definition :name "language" :implementation (find-class 'language)))
+;; TODO generate these 
+(setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept" :implementation (find-class 'concept-definition)))
+(setf (concept-definition (find-class 'feature)) (make-instance 'concept-definition :name "feature":implementation (find-class 'feature)))
+(setf (concept-definition (find-class 'language)) (make-instance 'concept-definition :name "language":implementation (find-class 'language)))
 
 (setf (find-concept "concept" *treep*) (find-class 'concept-definition))
+(setf (find-concept "feature" *treep*) (find-class 'feature))
 (setf (find-concept "language" *treep*) (find-class 'language))
 
 (defun lookup-concept (name &optional (language *language*))
@@ -74,9 +83,11 @@
       (let ((language
 	     (if (cadr name)
 		 (or
+		  (when (string= (string-upcase (language-name language)) (string-upcase (car name)))
+		    language)
 		  (find (string-upcase (car name)) (used-languages language)
 			:key (lambda (lang) (string-upcase (language-name lang)))
-			 :test #'string=)
+			:test #'string=)
 		  (error "No language named ~S found in ~S" (car name) language))
 		 language)))
 	(if (cddr name)
