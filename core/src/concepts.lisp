@@ -76,9 +76,11 @@
 
 (setf (find-concept "concept" *treep*) (find-class 'concept-definition))
 (setf (find-concept "feature" *treep*) (find-class 'feature))
-(setf (find-concept "language" *treep*) (find-class 'language))
+(setf (find-concept "define-language" *treep*) (find-class 'language))
 
 (defun lookup-concept (name &optional (language *language*))
+  (when (stringp name)
+    (setf name (list name)))
   (if name
       (let ((language
 	     (if (cadr name)
@@ -92,7 +94,13 @@
 		 language)))
 	(if (cddr name)
 	    (error "Not a valid concept path: ~S" name)
-	    (find-concept (or (cadr name) (car name)) language)))
+	    (let ((concept-name (or (cadr name) (car name))))
+	      (or
+	       (find-concept concept-name language)
+	       (dolist (language (used-languages language))
+		 (let ((concept (find-concept concept-name language)))
+		   (when concept
+		     (return concept))))))))
       nil))
 
 (defgeneric lookup-feature (name object)
