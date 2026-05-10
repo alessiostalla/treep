@@ -3,6 +3,8 @@
 (define-condition premature-end-of-form (error) ())
 (define-condition unexpected-character (error)
   ((character :initarg :character)))
+(define-condition not-a-name (error)
+  ((datum :initarg :datum)))
 
 (defun is-space-character (ch)
   (or (char= ch #\Space) (char= ch #\Tab) (char= ch #\Linefeed) (char= ch #\Return)))
@@ -62,6 +64,8 @@
 	     (return))
 	   (let ((name (read-name stream))
 		 (subform (read-form stream language)))
+	     (when (null name)
+	       (error 'not-a-name :datum subform))
 	     (set-feature form name subform)))))
   (form-filled form))
 
@@ -73,12 +77,14 @@
 
 (defmethod form-filled ((form language))
   (let ((concepts (concepts form)))
-    (when (listp concepts)
-      (let ((concepts-map (make-hash-table :test #'equal)))
-	(dolist (c concepts)
-	  (setf (gethash (concept-name c) concepts-map) c))
-	(setf (slot-value form 'concepts) concepts-map)))))
-    
+    (let ((concepts-map (make-hash-table :test #'equal)))
+      (dolist (c concepts)
+	(setf (gethash (concept-name c) concepts-map) c))
+      (setf (slot-value form 'concepts-map) concepts-map))))
+
+(defmethod form-filled ((form concept-definition))
+  (setf (concept-implementation form)
+	(implement-concept form)))
 
 (defun identifier-start-char? (ch)
   (or (alpha-char-p ch) (char= ch #\_) (char= ch #\-) (char= ch #\+) (char= ch #\*)))
@@ -107,19 +113,3 @@
 		     (when (> (length simple-name) 0)
 		       (push simple-name name))
 		     (return (nreverse name)))))))))
-
-(defun load (stream-designator &optional consumer)
-  (typecase stream-designator
-    (stream
-     (let (contents)
-       (loop
-	  :while (peek-char t stream-designator nil)
-	  :do (let ((form (read-form stream)))
-		(if consumer
-		    (funcall consumer form)
-		    (push form contents))))
-       (nreverse contents)))
-    (string
-     (with-open-file (stream stream-designator)
-       (load stream)))
-    (t (error "Not a stream designator: ~S" stream-designator))))

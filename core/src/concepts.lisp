@@ -1,7 +1,7 @@
 (in-package :treep)
 
 (defclass concept (clutter:standard-class-with-attributes)
-  ((definition :initform nil :accessor concept-definition)))
+  ((definition :initform nil :initarg :definition :accessor concept-definition)))
 (defclass concept-slot-definition (clutter:-with-attributes)
   ((name :initarg :feature-name :initform nil :accessor feature-name)
    (kind :initarg :kind :initform :attribute :accessor feature-kind)
@@ -42,15 +42,16 @@
 
 (defclass language (form)
   ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
-   (concepts :reader concepts :initform (make-hash-table :test #'equal) :kind :containment :feature-name "concepts")
-   (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :internal :feature-name "used-languages"))
+   (concepts :reader concepts :initform (list) :kind :containment :feature-name "concepts")
+   (concepts-map :reader concepts-map :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts-map")
+   (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :attribute :feature-name "used-languages"))
   (:metaclass concept))
 
 (defclass concept-definition (form)
   ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
    (features :reader features :initform (list) :kind :containment :feature-name "features")
    ;; Used by the reader to instantiate the concept
-   (implementation :reader concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
+   (implementation :accessor concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
   (:metaclass concept))
 
 (defclass feature (form)
@@ -61,22 +62,23 @@
 (defvar *language* (make-instance 'language :name "default" :used-languages (list *treep*)))
 
 (defmethod find-concept ((name string) (language language))
-  (gethash name (concepts language)))
-
-(defmethod (setf find-concept) ((concept concept-definition) (name string) (language language))
-  (setf (gethash name (concepts language)) concept))
-(defmethod (setf find-concept) ((concept concept) (name string) (language language))
-  (setf (find-concept name language)
-	(or (concept-definition concept) (error "Concept ~S doesn't have a definition" concept))))
+  (gethash name (concepts-map language)))
 
 ;; TODO generate these 
 (setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept" :implementation (find-class 'concept-definition)))
-(setf (concept-definition (find-class 'feature)) (make-instance 'concept-definition :name "feature":implementation (find-class 'feature)))
-(setf (concept-definition (find-class 'language)) (make-instance 'concept-definition :name "language":implementation (find-class 'language)))
+(setf (concept-definition (find-class 'feature)) (make-instance 'concept-definition :name "feature" :implementation (find-class 'feature)))
+(setf (concept-definition (find-class 'language)) (make-instance 'concept-definition :name "define-language" :implementation (find-class 'language)))
 
-(setf (find-concept "concept" *treep*) (find-class 'concept-definition))
-(setf (find-concept "feature" *treep*) (find-class 'feature))
-(setf (find-concept "define-language" *treep*) (find-class 'language))
+(defun add-concept (concept language)
+  (when (symbolp concept)
+    (setf concept (or (find-class concept) (error "~S does not name a concept" concept))))
+  (setf concept (or (concept-definition concept) (error "The definition of concept ~A in unknown" concept)))
+  (push concept (slot-value language 'concepts))
+  (setf (gethash (concept-name concept) (concepts-map language)) concept))
+
+(add-concept 'concept-definition *treep*)
+(add-concept 'feature *treep*)
+(add-concept 'language *treep*)
 
 (defun lookup-concept (name &optional (language *language*))
   (when (stringp name)
@@ -127,22 +129,53 @@
 	:test #'string=))
 
 (defun set-feature (form feature value)
-  (let ((feature (typecase feature
-		   (concept-slot-definition feature)
-		   (symbol
-		    (find feature
-			  (closer-mop:class-slots (class-of form))
-			  :key #'closer-mop:slot-definition-name))
-		   ((or string list) (lookup-feature feature form))
-		   (t (error "Not a valid feature designator: ~S" feature)))))
-    (unless feature
+  (let ((the-feature
+	 (typecase feature
+	   (concept-slot-definition feature)
+	   (symbol
+	    (find feature
+		  (closer-mop:class-slots (class-of form))
+		  :key #'closer-mop:slot-definition-name))
+	   ((or string list) (lookup-feature feature form))
+	   (t (error "Not a valid feature designator: ~S" feature)))))
+    (unless the-feature
       (error "Unknown feature ~S in ~S" feature form))
     ;; TODO check multiplicity
-    (setf (slot-value form (closer-mop:slot-definition-name feature)) value)
-    (when (eq (feature-kind feature) :containment)
+    (setf (slot-value form (closer-mop:slot-definition-name the-feature)) value)
+    (when (eq (feature-kind the-feature) :containment)
       (labels ((set-parent (f)
 		 (typecase f
-		   (form (setf (form-container form) (make-container :form form :slot feature)))
+		   (form (setf (form-container form) (make-container :form form :slot the-feature)))
 		   (list (map nil #'set-parent f)))))
 	(set-parent value)))
     value))
+
+(defgeneric implement-concept (concept))
+(defmethod implement-concept ((concept concept-definition))
+  (make-instance 'concept
+		 :name (make-symbol (concept-name concept))
+		 :definition concept
+		 :direct-superclasses (list (find-class 'form))) ;; TODO inheritance
+  ;; TODO features
+  )
+
+(defmethod print-object ((object form) stream)
+  (let ((concept (class-of object)))
+    (if (typep concept 'concept)
+	(print-unreadable-object (object stream :type nil :identity t)
+	  (let ((def (concept-definition object)))
+	    (if def
+		(princ (concept-name object) stream)
+		(princ (class-name concept) stream))))
+	(call-next-method))))
+
+(defmethod print-object ((object concept) stream)
+  (let ((def (concept-definition object)))
+    (if def
+	(print-object def stream)
+	(call-next-method))))
+
+(defmethod print-object ((object concept-definition) stream)
+  (print-unreadable-object (object stream :type nil :identity t)
+    (princ "Concept " stream)
+    (prin1 (concept-name object) stream)))

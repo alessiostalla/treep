@@ -7,7 +7,8 @@
                 :components
                 ((:file "packages")
 		 (:file "concepts")
-		 (:file "io"))))
+		 (:file "io")
+		 (:file "load"))))
   :description "The Treep language"
   :in-order-to ((test-op (test-op "treep/tests"))))
 
