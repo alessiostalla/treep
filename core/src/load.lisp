@@ -30,7 +30,7 @@
 		   (setf language
 			 (or (find-language (language-name form) languages)
 			     (error 'not-a-language :name (language-name form) :candidates languages))))
-		  (language (push form languages)))) ;; Allow to use a newly defined language immediately
+		  (language (push form languages))))) ;; Allow to use a newly defined language immediately
        (nreverse forms)))
     (string
      (with-open-file (stream stream)

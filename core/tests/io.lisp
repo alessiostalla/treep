@@ -39,6 +39,6 @@
   (concept name:\"concept1\" features:[(feature name:\"feature-1\") (feature name:\"feature-2\") (feature name:\"feature-3\")])
 ])
 (language name:\"foo\")
-(concept1)")))) ;; TODO not yet supported feature-1: 3 feature-2: \"something\" feature-3: (concept1))"))))
+(concept1 feature-1: 3 feature-2: \"something\" feature-3: (concept1))"))))
     (is (= 3 (length result)))
     (is (typep (elt result 2) 'treep::form))))

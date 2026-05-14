@@ -5,7 +5,8 @@
 (defclass concept-slot-definition (clutter:-with-attributes)
   ((name :initarg :feature-name :initform nil :accessor feature-name)
    (kind :initarg :kind :initform :attribute :accessor feature-kind)
-   (multiplicity :initarg :multiplicity :initform 1 :accessor feature-multiplicity)))
+   (multiplicity :initarg :multiplicity :initform 1 :accessor feature-multiplicity)
+   (definition :initarg :definition :reader feature-definition)))
 (defclass direct-concept-slot-definition (clutter::direct-slot-definition-with-attributes concept-slot-definition) ())
 (defclass effective-concept-slot-definition (clutter::effective-slot-definition-with-attributes concept-slot-definition) ())
 
@@ -29,7 +30,9 @@
     (when (typep most-specific 'concept-slot-definition)
       (setf (feature-name result) (feature-name most-specific))
       (setf (feature-kind result) (feature-kind most-specific))
-      (setf (feature-multiplicity result) (feature-multiplicity most-specific)))
+      (setf (feature-multiplicity result) (feature-multiplicity most-specific))
+      (when (slot-boundp most-specific 'definition)
+	(setf (slot-value result 'definition) (feature-definition most-specific))))
     result))
 
 (defstruct container form slot)
@@ -55,7 +58,9 @@
   (:metaclass concept))
 
 (defclass feature (form)
-  ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute))
+  ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
+   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute)
+   (kind :initarg :kind :initform :attribute :accessor feature-kind :feature-name "kind" :kind :attribute))
   (:metaclass concept))
 
 (defvar *treep* (make-instance 'language :name "treep"))
@@ -152,12 +157,25 @@
 
 (defgeneric implement-concept (concept))
 (defmethod implement-concept ((concept concept-definition))
-  (make-instance 'concept
+  (let ((slots (mapcar (lambda (f) (implement-feature f concept))
+		       (features concept))))
+    (make-instance 'concept
 		 :name (make-symbol (concept-name concept))
 		 :definition concept
-		 :direct-superclasses (list (find-class 'form))) ;; TODO inheritance
-  ;; TODO features
-  )
+		 :direct-superclasses (list (find-class 'form)) ;; TODO inheritance
+		 :direct-slots slots)
+    ;; TODO accessors for features
+    ))
+
+(defgeneric implement-feature (feature concept))
+(defmethod implement-feature ((feature feature) (concept concept-definition))
+  (list
+   :name (make-symbol (feature-name feature))
+   :feature-name (feature-name feature)
+   :class concept
+   :definition feature
+   :multiplicity (feature-multiplicity feature)
+   :kind (feature-kind feature)))
 
 (defmethod print-object ((object form) stream)
   (let ((concept (class-of object)))
