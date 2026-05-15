@@ -25,5 +25,5 @@
 	    (error "A symbol named ~S already exists in ~S" (symbol-name class-name) p))
 	(progn
 	  (import class-name p)
-	  (setf (find-class class-name) c)))))
+	  (closer-mop:ensure-class-using-class c class-name :metaclass (class-of c) :direct-superclasses (closer-mop:class-direct-superclasses c))))))
     
