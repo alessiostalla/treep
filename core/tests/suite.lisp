@@ -1,4 +1,5 @@
 (in-package :treep/tests)
 
 (deftest run ()
-  (io))
+  (test-io)
+  (test-install))

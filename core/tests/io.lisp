@@ -1,6 +1,6 @@
 (in-package :treep/tests)
 
-(deftest io ()
+(deftest test-io ()
   (basic-io)
   (nesting)
   (test-load))
