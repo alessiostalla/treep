@@ -57,6 +57,12 @@
    (implementation :accessor concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
   (:metaclass concept))
 
+(defun ensure-concept-definition (concept)
+  (or (concept-definition concept) (error "The definition of concept ~A in unknown" concept)))
+
+(defmethod concept-name ((c concept))
+  (concept-name (ensure-concept-definition c)))
+
 (defclass feature (form)
   ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
    (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute)
@@ -77,7 +83,7 @@
 (defun add-concept (concept language)
   (when (symbolp concept)
     (setf concept (or (find-class concept) (error "~S does not name a concept" concept))))
-  (setf concept (or (concept-definition concept) (error "The definition of concept ~A in unknown" concept)))
+  (setf concept (ensure-concept-definition concept))
   (push concept (slot-value language 'concepts))
   (setf (gethash (concept-name concept) (concepts-map language)) concept))
 
@@ -154,6 +160,10 @@
 		   (list (map nil #'set-parent f)))))
 	(set-parent value)))
     value))
+
+(defun ensure-concept-implementation (concept)
+  (or (concept-implementation concept)
+      (setf (concept-implementation concept) (implement-concept concept))))
 
 (defgeneric implement-concept (concept))
 (defmethod implement-concept ((concept concept-definition))

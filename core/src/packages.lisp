@@ -5,6 +5,7 @@
 	   #:features #:feature-name #:find-language
 	   #:install #:install-element
 	   #:language #:language-name #:load #:lookup-concept
+	   #:migrate
 	   #:read-form
 
 	   #:*language* #:*languages* #:*treep*))

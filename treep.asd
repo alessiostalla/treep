@@ -9,7 +9,8 @@
 		 (:file "concepts")
 		 (:file "io")
 		 (:file "load")
-		 (:file "install"))))
+		 (:file "install")
+		 (:file "migrate"))))
   :description "The Treep language"
   :in-order-to ((test-op (test-op "treep/tests"))))
 
@@ -22,6 +23,7 @@
                 ((:file "packages")
 		 (:file "io")
 		 (:file "install")
+		 (:file "migrate")
 		 (:file "suite"))))
   :description "Test system for treep"
   :perform (test-op (op c) (symbol-call :treep/tests :run)))

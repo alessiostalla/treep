@@ -13,7 +13,7 @@
     (install-element c p allow-redefinition)))
 
 (defmethod install-element ((c concept-definition) (p package) allow-redefinition)
-  (let ((impl (or (concept-implementation c) (error "Concept not implemented: ~S" c))))
+  (let ((impl (ensure-concept-implementation c)))
     (install-element impl p allow-redefinition)))
 
 (defmethod install-element ((c concept) (p package) allow-redefinition)

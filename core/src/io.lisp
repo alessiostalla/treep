@@ -35,7 +35,7 @@
   (let* ((name (read-name stream))
 	 (concept (lookup-concept name language)))
     (if concept
-	(let ((concept-class (concept-implementation concept)))
+	(let ((concept-class (ensure-concept-implementation concept)))
 	  (if concept-class
 	      (let ((form (make-instance concept-class)))
 		(fill-form form stream language)
@@ -81,10 +81,6 @@
       (dolist (c concepts)
 	(setf (gethash (concept-name c) concepts-map) c))
       (setf (slot-value form 'concepts-map) concepts-map))))
-
-(defmethod form-filled ((form concept-definition))
-  (setf (concept-implementation form)
-	(implement-concept form)))
 
 (defun identifier-start-char? (ch)
   (or (alpha-char-p ch) (char= ch #\_) (char= ch #\-) (char= ch #\+) (char= ch #\*)))

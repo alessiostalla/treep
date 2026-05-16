@@ -2,4 +2,5 @@
 
 (deftest run ()
   (test-io)
-  (test-install))
+  (test-install)
+  (test-migrate))
