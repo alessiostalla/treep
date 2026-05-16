@@ -19,8 +19,7 @@
      (let ((concept1 (find-symbol "concept1" pkg)))
        (is (not (null concept1)))
        (is (not (null (find-class concept1)))))))
-  ;; Redefinition
-  #+todo
+  ;; Redefinition - only of symbols, see design choices
   (with-temporary-package (pkg)
     (let ((lang (test-lang-1)))
       (install lang pkg)
@@ -28,7 +27,7 @@
 	     (class1 (find-class concept1))
 	     (instance1 (make-instance concept1)))
 	(is (eq class1 (class-of instance1)))
-	(install lang pkg)
+	(install (test-lang-1) pkg)
 	(let ((class1-redefined (find-class concept1)))
 	  (is (not (eq class1 class1-redefined)))
-	  (is (eq class1-redefined (class-of instance1))))))))
+	  (is (eq class1 (class-of instance1))))))))

@@ -21,9 +21,10 @@
 	 (existing (find-symbol (symbol-name class-name) p)))
     (if (and existing (not (eq existing class-name)))
 	(if allow-redefinition
-	    (error "TODO redefinition not implemented")
+	    (setf (class-name c) existing)
 	    (error "A symbol named ~S already exists in ~S" (symbol-name class-name) p))
-	(progn
-	  (import class-name p)
-	  (closer-mop:ensure-class-using-class c class-name :metaclass (class-of c) :direct-superclasses (closer-mop:class-direct-superclasses c))))))
+	(import class-name p))
+    (closer-mop:ensure-class-using-class c (class-name c)
+					 :metaclass (class-of c)
+					 :direct-superclasses (closer-mop:class-direct-superclasses c))))
     
