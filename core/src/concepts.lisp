@@ -139,21 +139,33 @@
 	:key #'feature-name
 	:test #'string=))
 
+(defun containment? (feature)
+  (eq (feature-kind feature) :containment))
+
+(defun resolve-feature (feature form)
+  (typecase feature
+    (concept-slot-definition feature)
+    (symbol
+     (find feature
+	   (closer-mop:class-slots (class-of form))
+	   :key #'closer-mop:slot-definition-name))
+    ((or string list) (lookup-feature feature form))
+    (feature (lookup-feature (feature-name feature) form))
+    (t (error "Not a valid feature designator: ~S" feature))))
+
+(defun get-feature (form feature)
+  (let ((the-feature (resolve-feature feature form)))
+    (unless the-feature
+      (error "Unknown feature ~S in ~S" feature form))
+    (slot-value form (closer-mop:slot-definition-name the-feature))))
+
 (defun set-feature (form feature value)
-  (let ((the-feature
-	 (typecase feature
-	   (concept-slot-definition feature)
-	   (symbol
-	    (find feature
-		  (closer-mop:class-slots (class-of form))
-		  :key #'closer-mop:slot-definition-name))
-	   ((or string list) (lookup-feature feature form))
-	   (t (error "Not a valid feature designator: ~S" feature)))))
+  (let ((the-feature (resolve-feature feature form)))
     (unless the-feature
       (error "Unknown feature ~S in ~S" feature form))
     ;; TODO check multiplicity
     (setf (slot-value form (closer-mop:slot-definition-name the-feature)) value)
-    (when (eq (feature-kind the-feature) :containment)
+    (when (containment? the-feature)
       (labels ((set-parent (f)
 		 (typecase f
 		   (form (setf (form-container form) (make-container :form form :slot the-feature)))

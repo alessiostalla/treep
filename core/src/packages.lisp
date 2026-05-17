@@ -1,11 +1,13 @@
 (defpackage treep
-  (:use :cl)
+  (:use :cl :doplus)
   (:shadow #:load)
   (:export #:concept #:concept-definition #:concept-name #:concepts
 	   #:features #:feature-name #:find-language
+	   #:get-feature
 	   #:install #:install-element
 	   #:language #:language-name #:load #:lookup-concept
 	   #:migrate
 	   #:read-form
+	   #:set-feature
 
 	   #:*language* #:*languages* #:*treep*))

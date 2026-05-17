@@ -2,7 +2,7 @@
   :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("closer-mop" "clutter" "fset")
+  :depends-on ("closer-mop" "clutter" "doplus" "fset")
   :components ((:module "core/src"
                 :components
                 ((:file "packages")
