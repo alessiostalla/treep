@@ -5,15 +5,23 @@
   ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute))
   (:language *treep*))
 
-(defvar *languages* (list *treep*) "The languages known to the system")
-(defun find-language (name &optional (languages *languages*))
+(defclass system ()
+  ((languages :accessor system-languages :initform nil :initarg :languages)
+   (roots :accessor system-roots :initform nil)))
+
+(defvar *system* (make-instance 'system :languages (list *treep*)) "The active system")
+
+(defun known-languages (&optional (system *system*))
+  (system-languages system))
+
+(defun find-language (name &optional (languages (known-languages)))
   (find name languages :key #'language-name :test #'string=))
 
 (define-condition not-a-language (error)
   ((name :initarg :name)
    (candidates :initarg :candidates)))
 
-(defun load (stream &optional (language *language*) (languages *languages*))
+(defun load (stream &optional (language *language*) (languages (known-languages)))
   (typecase stream
     (stream
      (let ((forms (list)))

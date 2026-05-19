@@ -2,5 +2,5 @@
 
 (deftest run ()
   (test-io)
-  (test-install)
+  (test-install-into-package)
   (test-migrate))

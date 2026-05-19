@@ -32,7 +32,7 @@
 (deftest test-load ()
   (is (null (load (make-string-input-stream " 
 "))))
-  (is (eq *treep* (find-language "treep" *languages*)))
+  (is (eq *treep* (find-language "treep")))
   (let ((result (load (make-string-input-stream "(define-language name:\"foo\")"))))
     (is (= 1 (length result))))
   (let ((result (load (make-string-input-stream "(define-language name:\"foo\" concepts:[
