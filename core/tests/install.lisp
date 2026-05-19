@@ -8,7 +8,7 @@
 
 (defun test-lang-1 ()
   (first (load (make-string-input-stream "(define-language name:\"foo\" concepts:[
-  (concept name:\"concept1\" features:[(feature name:\"feature-1\") (feature name:\"feature-2\") (feature name:\"feature-3\")])
+  (concept name:\"concept1\" features:[(attribute name:\"feature-1\") (containment name:\"feature-2\") (reference name:\"feature-3\")])
 ])"))))
 
 (deftest test-install ()

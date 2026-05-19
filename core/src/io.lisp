@@ -41,7 +41,7 @@
 		(fill-form form stream language)
 		form)
 	      (error "Concept ~S is not implemented" concept)))
-	(error "Unknown concept ~S" name))))
+	(error "Unknown concept ~S in ~S" name language))))
 
 (defun read-list (stream language)
   (peek-char t stream)

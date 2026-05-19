@@ -1,12 +1,9 @@
 (in-package :treep)
 
 ;; TODO macro
-(defclass reference-language (form)
+(defconcept (reference-language "language") ()
   ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute))
-  (:metaclass concept))
-
-(setf (concept-definition (find-class 'reference-language)) (make-instance 'concept-definition :name "language" :implementation (find-class 'reference-language)))
-(add-concept 'reference-language *treep*)
+  (:language *treep*))
 
 (defvar *languages* (list *treep*) "The languages known to the system")
 (defun find-language (name &optional (languages *languages*))

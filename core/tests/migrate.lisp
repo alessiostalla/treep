@@ -2,7 +2,7 @@
 
 (defun test-model-for-migration ()
   (load (make-string-input-stream "(define-language name:\"foo\" concepts:[
-  (concept name:\"concept1\" features:[(feature name:\"attr\") (feature name:\"cont\") (feature name:\"ref\")])
+  (concept name:\"concept1\" features:[(attribute name:\"attr\") (containment name:\"cont\") (reference name:\"ref\")])
 ])
 (language name:\"foo\")
 (concept1 attr:\"abc\" cont:(concept1))")))
@@ -17,9 +17,9 @@
     (let* ((new-version (test-model-for-migration))
 	   (new-lang (first new-version))
 	   (new-concept1 (lookup-concept "concept1" new-lang)))
-      (setf (treep::feature-kind (treep::lookup-feature "cont" (treep::ensure-concept-implementation new-concept1))) :containment) ;; TODO this should be defined in Treep
       (migrate instance1 new-lang)
       (let ((class1-redefined (class-of instance1)))
 	(is (not (eq class1 class1-redefined)))
-	(is (eq class1-redefined (class-of (get-feature instance1 "cont"))))))))
+	(is (eq class1-redefined (class-of (get-feature instance1 "cont"))))
+	(is (eq new-concept1 (concept-definition class1-redefined)))))))
 	    

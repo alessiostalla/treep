@@ -43,13 +43,6 @@
 
 (deftype reference-to (type &key (by 'string)) (list 'or by type))
 
-(defclass language (form)
-  ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
-   (concepts :reader concepts :initform (list) :kind :containment :feature-name "concepts")
-   (concepts-map :reader concepts-map :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts-map")
-   (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :attribute :feature-name "used-languages"))
-  (:metaclass concept))
-
 (defclass concept-definition (form)
   ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
    (features :reader features :initform (list) :kind :containment :feature-name "features")
@@ -63,22 +56,31 @@
 (defmethod concept-name ((c concept))
   (concept-name (ensure-concept-definition c)))
 
-(defclass feature (form)
-  ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
-   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute)
-   (kind :initarg :kind :initform :attribute :accessor feature-kind :feature-name "kind" :kind :attribute))
-  (:metaclass concept))
+(setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept" :implementation (find-class 'concept-definition)))
+
+(defmacro defconcept (name superclasses slots &rest options)
+  (destructuring-bind (name &optional (concept-name (string-downcase (symbol-name name))))
+      (if (listp name) name (list name))
+    (let* ((language-option (find :language options :key #'car))
+	   (options (remove language-option options)))
+      `(progn
+	 (defclass ,name ,(or superclasses '(form)) ,slots ,@options (:metaclass concept))
+	 (setf (concept-definition (find-class ',name))
+	       (make-instance 'concept-definition :name ,concept-name :implementation (find-class ',name)))
+	 ,@(when language-option
+	     `((add-concept ',name ,(cadr language-option))))))))
+
+(defconcept (language "define-language") ()
+  ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
+   (concepts :reader concepts :initform (list) :kind :containment :feature-name "concepts")
+   (concepts-map :reader concepts-map :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts-map")
+   (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :attribute :feature-name "used-languages")))
 
 (defvar *treep* (make-instance 'language :name "treep"))
 (defvar *language* (make-instance 'language :name "default" :used-languages (list *treep*)))
 
 (defmethod find-concept ((name string) (language language))
   (gethash name (concepts-map language)))
-
-;; TODO generate these 
-(setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept" :implementation (find-class 'concept-definition)))
-(setf (concept-definition (find-class 'feature)) (make-instance 'concept-definition :name "feature" :implementation (find-class 'feature)))
-(setf (concept-definition (find-class 'language)) (make-instance 'concept-definition :name "define-language" :implementation (find-class 'language)))
 
 (defun add-concept (concept language)
   (when (symbolp concept)
@@ -88,7 +90,6 @@
   (setf (gethash (concept-name concept) (concepts-map language)) concept))
 
 (add-concept 'concept-definition *treep*)
-(add-concept 'feature *treep*)
 (add-concept 'language *treep*)
 
 (defun lookup-concept (name &optional (language *language*))
@@ -115,6 +116,30 @@
 		   (when concept
 		     (return concept))))))))
       nil))
+
+;; Features
+
+(defconcept feature ()
+  ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
+   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute))
+  (:language *treep*))
+
+(defconcept attribute (feature) () (:language *treep*))
+(defconcept containment (feature) () (:language *treep*))
+(defconcept reference (feature) () (:language *treep*))
+
+
+(defmethod feature-kind ((feature feature))
+  (error "No kind defined for feature of type ~A: ~S (~S)" (class-of feature) (feature-name feature) feature))
+
+(defmethod feature-kind ((feature attribute))
+  :attribute)
+
+(defmethod feature-kind ((feature containment))
+  :containment)
+
+(defmethod feature-kind ((feature reference))
+  :reference)
 
 (defgeneric lookup-feature (name object)
   (:documentation "Looks up a feature by name"))
