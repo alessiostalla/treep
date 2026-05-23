@@ -41,11 +41,10 @@
   ((container :accessor form-container :initform nil :kind :internal :feature-name "container"))
   (:metaclass concept))
 
-(deftype reference-to (type &key (by 'string)) (list 'or by type))
-
 (defclass concept-definition (form)
   ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
-   (features :reader features :initform (list) :kind :containment :feature-name "features")
+   (features :reader features :initform (list) :kind :containment :multiplicity :n :feature-name "features")
+   (superconcepts :reader concept-superconcepts :initform (list) :kind :reference :multiplicity :n :feature-name "superconcepts")
    ;; Used by the reader to instantiate the concept
    (implementation :accessor concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
   (:metaclass concept))
@@ -72,7 +71,7 @@
 
 (defconcept (language "define-language") ()
   ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
-   (concepts :reader concepts :initform (list) :kind :containment :feature-name "concepts")
+   (concepts :reader concepts :initform (list) :kind :containment :multiplicity :n :feature-name "concepts")
    (concepts-map :reader concepts-map :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts-map")
    (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :attribute :feature-name "used-languages")))
 
@@ -87,7 +86,9 @@
     (setf concept (or (find-class concept) (error "~S does not name a concept" concept))))
   (setf concept (ensure-concept-definition concept))
   (push concept (slot-value language 'concepts))
-  (setf (gethash (concept-name concept) (concepts-map language)) concept))
+  (setf (gethash (concept-name concept) (concepts-map language)) concept)
+  (setf (form-container concept) (make-container :form language :slot 'concepts))
+  concept)
 
 (add-concept 'concept-definition *treep*)
 (add-concept 'language *treep*)
@@ -124,10 +125,21 @@
    (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute))
   (:language *treep*))
 
+(defclass ref (form)
+  ((key :initarg :key :accessor ref-key :kind :attribute)
+   (target :initarg :target :accessor ref-target :initform nil :kind :internal))
+  (:metaclass concept))
+
+(defun resolve-ref (ref resolve-function)
+  (let ((target (ref-target ref)))
+    (unless target
+      (setf target (funcall resolve-function ref))
+      (setf (ref-target ref) target))
+    target))
+
 (defconcept attribute (feature) () (:language *treep*))
 (defconcept containment (feature) () (:language *treep*))
 (defconcept reference (feature) () (:language *treep*))
-
 
 (defmethod feature-kind ((feature feature))
   (error "No kind defined for feature of type ~A: ~S (~S)" (class-of feature) (feature-name feature) feature))
@@ -167,6 +179,9 @@
 (defun containment? (feature)
   (eq (feature-kind feature) :containment))
 
+(defun reference? (feature)
+  (eq (feature-kind feature) :reference))
+
 (defun resolve-feature (feature form)
   (typecase feature
     (concept-slot-definition feature)
@@ -193,7 +208,7 @@
     (when (containment? the-feature)
       (labels ((set-parent (f)
 		 (typecase f
-		   (form (setf (form-container form) (make-container :form form :slot the-feature)))
+		   (form (setf (form-container f) (make-container :form form :slot the-feature)))
 		   (list (map nil #'set-parent f)))))
 	(set-parent value)))
     value))
@@ -209,7 +224,21 @@
     (make-instance 'concept
 		 :name (make-symbol (concept-name concept))
 		 :definition concept
-		 :direct-superclasses (list (find-class 'form)) ;; TODO inheritance
+		 :direct-superclasses
+		 (if (concept-superconcepts concept)
+		     (mapcar (lambda (s)
+			       (ensure-concept-implementation
+				(resolve-ref s (lambda (ref)
+						 (or
+						  (lookup-concept (ref-key ref)
+								  (if (form-container concept)
+								      (container-form (form-container concept))
+								      (error "Cannot resolve superconcept ~S for ~S because the derived concept has no language"
+									     (ref-key ref)
+									     concept)))
+						  (error "Unknown concept ~S" (ref-key ref)))))))
+			     (concept-superconcepts concept))
+		     (list (find-class 'form)))
 		 :direct-slots slots)
     ;; TODO accessors for features
     ))

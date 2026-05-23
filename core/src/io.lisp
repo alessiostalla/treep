@@ -4,7 +4,7 @@
 (define-condition unexpected-character (error)
   ((character :initarg :character)))
 (define-condition not-a-name (error)
-  ((datum :initarg :datum)))
+  ((starting-with :initarg :starting-with)))
 
 (defun is-space-character (ch)
   (or (char= ch #\Space) (char= ch #\Tab) (char= ch #\Linefeed) (char= ch #\Return)))
@@ -14,8 +14,6 @@
     (cond
       ((char= ch #\()
        (read-proper-form stream language))
-      ((char= ch #\[)
-       (read-list stream language))
       ((char= ch #\))
        (read-char stream)
        (error 'unexpected-character :character ch))
@@ -43,7 +41,7 @@
 	      (error "Concept ~S is not implemented" concept)))
 	(error "Unknown concept ~S in ~S" name language))))
 
-(defun read-list (stream language)
+(defun read-list (stream language element-reader)
   (peek-char t stream)
   (let ((ch (read-char stream t)))
     (unless (char= ch #\[)
@@ -53,7 +51,7 @@
 		  (progn
 		    (read-char stream)
 		    (return (nreverse result)))
-		  (push (read-form stream language) result)))))
+		  (push (funcall element-reader stream language) result)))))
 
 (defun fill-form (form stream language)
   (loop :do
@@ -62,11 +60,22 @@
 	   (progn
 	     (read-char stream)
 	     (return))
-	   (let ((name (read-name stream))
-		 (subform (read-form stream language)))
-	     (when (null name)
-	       (error 'not-a-name :datum subform))
-	     (set-feature form name subform)))))
+	   (let* ((name (read-name stream))
+		  (feature (resolve-feature name form)))
+	     (unless feature
+	       (error "Unknown feature ~S in ~S" name form))
+	     (set-feature form name
+			  (let ((mult (feature-multiplicity feature)))
+			    (if (or (null mult) (equal mult 1))
+				(if (typep feature 'reference)
+				    (make-instance 'ref :key (read-name stream))
+				    (read-form stream language))
+				(read-list stream language
+					   (if (reference? feature)
+					       (lambda (s l)
+						 (declare (ignore l))
+						 (make-instance 'ref :key (read-name s)))
+					       #'read-form)))))))))
   (form-filled form))
 
 (defgeneric form-filled (form)
@@ -108,4 +117,5 @@
 		   (progn
 		     (when (> (length simple-name) 0)
 		       (push simple-name name))
-		     (return (nreverse name)))))))))
+		     (return (or (nreverse name)
+				 (error 'not-a-name :starting-with ch))))))))))

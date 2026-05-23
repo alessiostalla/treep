@@ -30,6 +30,10 @@
       (is (string= "feature-1" (feature-name (elt (features concept) 0)))))))
 
 (deftest test-load ()
+  (test-load-simple)
+  (test-load-inheritance))
+
+(deftest test-load-simple ()
   (is (null (load (make-string-input-stream " 
 "))))
   (is (eq *treep* (find-language "treep")))
@@ -40,5 +44,15 @@
 ])
 (language name:\"foo\")
 (concept1 feature-1: 3 feature-3: \"something\" feature-2: (concept1))"))))
+    (is (= 3 (length result)))
+    (is (typep (elt result 2) 'treep::form))))
+
+(deftest test-load-inheritance ()
+  (let ((result (load (make-string-input-stream "(define-language name:\"foo\" concepts:[
+  (concept name:\"concept1\" features:[(attribute name:\"feature-1\") (containment name:\"feature-2\") (reference name:\"feature-3\")])
+  (concept name:\"concept2\" superconcepts:[concept1] features:[(attribute name:\"feature-1\")])
+])
+(language name:\"foo\")
+(concept2 feature-1: 3 feature-3: \"something\" feature-2: (concept1))"))))
     (is (= 3 (length result)))
     (is (typep (elt result 2) 'treep::form))))
