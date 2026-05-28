@@ -3,6 +3,7 @@
 (deftest test-io ()
   (basic-io)
   (nesting)
+  (io-roundtrip)
   (test-load))
 
 (deftest basic-io ()
@@ -28,6 +29,14 @@
     (let ((concept (lookup-concept "concept1" lang)))
       (is (= 3 (length (features concept))))
       (is (string= "feature-1" (feature-name (elt (features concept) 0)))))))
+
+(deftest io-roundtrip ()
+  (let ((lang (read-form (make-string-input-stream "(define-language name:\"foo\" concepts:[
+  (concept name:\"concept1\" features:[(attribute name:\"feature-1\") (containment name:\"feature-2\") (reference name:\"feature-3\")])
+])"))))
+    (is (string= "(treep:concept)" ;; TODO features
+		 (with-output-to-string (s)
+		   (write-form (first (concepts lang)) s))))))
 
 (deftest test-load ()
   (test-load-simple)

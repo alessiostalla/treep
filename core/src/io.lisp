@@ -119,3 +119,23 @@
 		       (push simple-name name))
 		     (return (or (nreverse name)
 				 (error 'not-a-name :starting-with ch))))))))))
+
+(defun write-form (form stream &optional (language *language*))
+  (typecase form
+    (form (write-proper-form form stream language))
+    (null nil)
+    (t (write form :stream stream))))
+
+(defun write-proper-form (form stream language)
+  (princ "(" stream)
+  (let ((concept (concept-definition (class-of form))))
+    (write-concept-name concept stream language))
+  ;; TODO features
+  (princ ")" stream))
+
+(defun write-concept-name (concept stream ref-language)
+  (let ((lang (concept-language concept)))
+    (when (and lang (not (eq lang ref-language))) ;; TODO only print the language when necessary
+      (princ (language-name lang) stream)
+      (princ #\: stream)))
+  (princ (concept-name concept) stream))

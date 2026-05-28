@@ -78,8 +78,12 @@
 (defvar *treep* (make-instance 'language :name "treep"))
 (defvar *language* (make-instance 'language :name "default" :used-languages (list *treep*)))
 
-(defmethod find-concept ((name string) (language language))
-  (gethash name (concepts-map language)))
+(defun find-concept (name language)
+  (or (gethash name (concepts-map language))
+      (dolist (language (used-languages language))
+	(let ((concept (find-concept name language)))
+	  (when concept
+	    (return concept))))))
 
 (defun add-concept (concept language)
   (when (symbolp concept)
@@ -92,6 +96,10 @@
 
 (add-concept 'concept-definition *treep*)
 (add-concept 'language *treep*)
+
+(defun concept-language (concept)
+  (when (form-container concept)
+    (container-form (form-container concept))))
 
 (defun lookup-concept (name &optional (language *language*))
   (when (stringp name)
@@ -110,12 +118,7 @@
 	(if (cddr name)
 	    (error "Not a valid concept path: ~S" name)
 	    (let ((concept-name (or (cadr name) (car name))))
-	      (or
-	       (find-concept concept-name language)
-	       (dolist (language (used-languages language))
-		 (let ((concept (find-concept concept-name language)))
-		   (when concept
-		     (return concept))))))))
+	      (find-concept concept-name language))))
       nil))
 
 ;; Features
@@ -231,8 +234,7 @@
 				(resolve-ref s (lambda (ref)
 						 (or
 						  (lookup-concept (ref-key ref)
-								  (if (form-container concept)
-								      (container-form (form-container concept))
+								  (or (concept-language concept)
 								      (error "Cannot resolve superconcept ~S for ~S because the derived concept has no language"
 									     (ref-key ref)
 									     concept)))
@@ -268,6 +270,11 @@
     (if def
 	(print-object def stream)
 	(call-next-method))))
+
+(defmethod print-object ((object language) stream)
+  (print-unreadable-object (object stream :type nil :identity t)
+    (princ "Language " stream)
+    (prin1 (language-name object) stream)))
 
 (defmethod print-object ((object concept-definition) stream)
   (print-unreadable-object (object stream :type nil :identity t)

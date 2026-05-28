@@ -10,5 +10,6 @@
 	   #:migrate
 	   #:read-form
 	   #:set-feature
+	   #:write-form
 
 	   #:*language* #:*system* #:*treep*))
