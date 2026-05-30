@@ -34,7 +34,7 @@
   (let ((lang (read-form (make-string-input-stream "(define-language name:\"foo\" concepts:[
   (concept name:\"concept1\" features:[(attribute name:\"feature-1\") (containment name:\"feature-2\") (reference name:\"feature-3\")])
 ])"))))
-    (is (string= "(treep:concept)" ;; TODO features
+    (is (string= "(treep:concept name:\"concept1\" features:[(treep:attribute) (treep:containment) (treep:reference)])" ;; TODO features
 		 (with-output-to-string (s)
 		   (write-form (first (concepts lang)) s))))))
 

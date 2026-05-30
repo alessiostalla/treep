@@ -2,6 +2,7 @@
 
 (defclass concept (clutter:standard-class-with-attributes)
   ((definition :initform nil :initarg :definition :accessor concept-definition)))
+
 (defclass concept-slot-definition (clutter:-with-attributes)
   ((name :initarg :feature-name :initform nil :accessor feature-name)
    (kind :initarg :kind :initform :attribute :accessor feature-kind)
@@ -43,8 +44,8 @@
 
 (defclass concept-definition (form)
   ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
-   (features :reader features :initform (list) :kind :containment :multiplicity :n :feature-name "features")
-   (superconcepts :reader concept-superconcepts :initform (list) :kind :reference :multiplicity :n :feature-name "superconcepts")
+   (features :reader features :initarg :features :initform (list) :kind :containment :multiplicity :n :feature-name "features")
+   (superconcepts :reader concept-superconcepts  :initarg :superconcepts :initform (list) :kind :reference :multiplicity :n :feature-name "superconcepts")
    ;; Used by the reader to instantiate the concept
    (implementation :accessor concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
   (:metaclass concept))
@@ -55,7 +56,9 @@
 (defmethod concept-name ((c concept))
   (concept-name (ensure-concept-definition c)))
 
-(setf (concept-definition (find-class 'concept-definition)) (make-instance 'concept-definition :name "concept" :implementation (find-class 'concept-definition)))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun slot-descriptor->feature (descr)
+    nil)) ;; TODO
 
 (defmacro defconcept (name superclasses slots &rest options)
   (destructuring-bind (name &optional (concept-name (string-downcase (symbol-name name))))
@@ -65,7 +68,10 @@
       `(progn
 	 (defclass ,name ,(or superclasses '(form)) ,slots ,@options (:metaclass concept))
 	 (setf (concept-definition (find-class ',name))
-	       (make-instance 'concept-definition :name ,concept-name :implementation (find-class ',name)))
+	       (make-instance 'concept-definition
+			      :name ,concept-name
+			      :features ,(remove nil (mapcar #'slot-descriptor->feature slots))
+			      :implementation (find-class ',name)))
 	 ,@(when language-option
 	     `((add-concept ',name ,(cadr language-option))))))))
 
@@ -93,9 +99,6 @@
   (setf (gethash (concept-name concept) (concepts-map language)) concept)
   (setf (form-container concept) (make-container :form language :slot 'concepts))
   concept)
-
-(add-concept 'concept-definition *treep*)
-(add-concept 'language *treep*)
 
 (defun concept-language (concept)
   (when (form-container concept)
@@ -125,7 +128,8 @@
 
 (defconcept feature ()
   ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
-   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute))
+   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute)
+   (slot-name :accessor feature-slot-name :initarg :slot-name :initform nil :kind :internal :feature-name "slot-name"))
   (:language *treep*))
 
 (defclass ref (form)
@@ -200,7 +204,10 @@
   (let ((the-feature (resolve-feature feature form)))
     (unless the-feature
       (error "Unknown feature ~S in ~S" feature form))
-    (slot-value form (closer-mop:slot-definition-name the-feature))))
+    ;; TODO handle unbound slot
+    (values
+     (slot-value form (closer-mop:slot-definition-name the-feature))
+     t)))
 
 (defun set-feature (form feature value)
   (let ((the-feature (resolve-feature feature form)))
@@ -222,33 +229,45 @@
 
 (defgeneric implement-concept (concept))
 (defmethod implement-concept ((concept concept-definition))
-  (let ((slots (mapcar (lambda (f) (implement-feature f concept))
-		       (features concept))))
+  (let ((superconcepts
+	 (mapcar (lambda (s)
+		   (ensure-concept-implementation
+		    (resolve-ref s (lambda (ref)
+				     (or
+				      (lookup-concept (ref-key ref)
+						      (or (concept-language concept)
+							  (error "Cannot resolve superconcept ~S for ~S because the derived concept has no language"
+								 (ref-key ref)
+								 concept)))
+				      (error "Unknown concept ~S" (ref-key ref)))))))
+		 (concept-superconcepts concept))))
     (make-instance 'concept
 		 :name (make-symbol (concept-name concept))
 		 :definition concept
-		 :direct-superclasses
-		 (if (concept-superconcepts concept)
-		     (mapcar (lambda (s)
-			       (ensure-concept-implementation
-				(resolve-ref s (lambda (ref)
-						 (or
-						  (lookup-concept (ref-key ref)
-								  (or (concept-language concept)
-								      (error "Cannot resolve superconcept ~S for ~S because the derived concept has no language"
-									     (ref-key ref)
-									     concept)))
-						  (error "Unknown concept ~S" (ref-key ref)))))))
-			     (concept-superconcepts concept))
-		     (list (find-class 'form)))
-		 :direct-slots slots)
+		 :direct-superclasses (or superconcepts (list (find-class 'form)))
+		 :direct-slots (mapcar (lambda (f) (implement-feature f concept)) (features concept)))
     ;; TODO accessors for features
     ))
+
+(defun find-feature-in-hierarchy (feature-name concepts)
+  (let (seen (to-process concepts))
+    (do+ (for c (being (pop to-process)))
+	 (doplus::while to-process)
+	 (when (not (find c seen))
+	   (dolist (f (features c))
+	     (when (string= (feature-name f) feature-name)
+	       (return f)))
+	   (dolist (sc (concept-superconcepts c))
+	     (push sc to-process))
+	   (push c seen)))))
 
 (defgeneric implement-feature (feature concept))
 (defmethod implement-feature ((feature feature) (concept concept-definition))
   (list
-   :name (make-symbol (feature-name feature))
+   :name (let ((redefined-feature (find-feature-in-hierarchy (feature-name feature) (concept-superconcepts concept))))
+	   (if redefined-feature
+	       (feature-slot-name redefined-feature)
+	       (setf (feature-slot-name feature) (make-symbol (feature-name feature)))))
    :feature-name (feature-name feature)
    :class concept
    :definition feature
@@ -280,3 +299,17 @@
   (print-unreadable-object (object stream :type nil :identity t)
     (princ "Concept " stream)
     (prin1 (concept-name object) stream)))
+
+;; Reflection
+
+(setf (concept-definition (find-class 'concept-definition))
+      (make-instance 'concept-definition
+		     :name "concept"
+		     :features (list
+				(make-instance 'attribute :name "name")
+				(make-instance 'containment :name "features" :multiplicity :n)
+				(make-instance 'reference :name "superconcepts" :multiplicity :n))
+		     :implementation (find-class 'concept-definition)))
+
+(add-concept 'concept-definition *treep*)
+(add-concept 'language *treep*)

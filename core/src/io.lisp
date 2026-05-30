@@ -129,8 +129,24 @@
 (defun write-proper-form (form stream language)
   (princ "(" stream)
   (let ((concept (concept-definition (class-of form))))
-    (write-concept-name concept stream language))
-  ;; TODO features
+    (write-concept-name concept stream language)
+    (do+
+      (for f (in (features concept)))
+      (let ((v (get-feature form f)))
+	(when v
+	  (princ " " stream)
+	  (princ (feature-name f) stream)
+	  (princ ":" stream)
+	  (if (listp v)
+	      (let ((first t))
+		(princ "[" stream)
+		(dolist (v v)
+		  (if first
+		      (setf first nil)
+		      (princ " " stream))
+		  (write-form v stream language))
+		(princ "]" stream))
+	      (write-form v stream language))))))
   (princ ")" stream))
 
 (defun write-concept-name (concept stream ref-language)
