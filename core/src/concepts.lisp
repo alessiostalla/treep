@@ -58,6 +58,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun slot-descriptor->feature (descr)
+    (declare (ignore descr))
     nil)) ;; TODO
 
 (defmacro defconcept (name superclasses slots &rest options)
@@ -132,10 +133,10 @@
    (slot-name :accessor feature-slot-name :initarg :slot-name :initform nil :kind :internal :feature-name "slot-name"))
   (:language *treep*))
 
-(defclass ref (form)
+(defconcept ref ()
   ((key :initarg :key :accessor ref-key :kind :attribute)
    (target :initarg :target :accessor ref-target :initform nil :kind :internal))
-  (:metaclass concept))
+  (:language *treep*))
 
 (defun resolve-ref (ref resolve-function)
   (let ((target (ref-target ref)))
@@ -250,15 +251,19 @@
     ))
 
 (defun find-feature-in-hierarchy (feature-name concepts)
-  (let (seen (to-process concepts))
-    (do+ (for c (being (pop to-process)))
+  (let (seen (to-process (remove nil (mapcar #'ref-target concepts))))
+    (do+ loop
 	 (doplus::while to-process)
+	 (for c (being (first to-process)))
+	 (pop to-process)
 	 (when (not (find c seen))
 	   (dolist (f (features c))
 	     (when (string= (feature-name f) feature-name)
-	       (return f)))
+	       (return-from loop f)))
 	   (dolist (sc (concept-superconcepts c))
-	     (push sc to-process))
+	     (let ((the-super-concept (ref-target sc)))
+	       (when the-super-concept
+		 (push the-super-concept to-process))))
 	   (push c seen)))))
 
 (defgeneric implement-feature (feature concept))
@@ -274,11 +279,16 @@
    :multiplicity (feature-multiplicity feature)
    :kind (feature-kind feature)))
 
+(defun concept-of (form)
+  (concept-definition (class-of form)))
+
+;; Printing
+
 (defmethod print-object ((object form) stream)
   (let ((concept (class-of object)))
     (if (typep concept 'concept)
 	(print-unreadable-object (object stream :type nil :identity t)
-	  (let ((def (concept-definition object)))
+	  (let ((def (concept-definition concept)))
 	    (if def
 		(princ (concept-name object) stream)
 		(princ (class-name concept) stream))))
