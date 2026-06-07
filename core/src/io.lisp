@@ -17,13 +17,22 @@
       ((char= ch #\))
        (read-char stream)
        (error 'unexpected-character :character ch))
-      ((digit-char-p ch)
-       (cl:read stream))
+      ((or (digit-char-p ch) (char= ch #\+) (char= ch #\-) (char= ch #\.))
+       (let* ((*read-eval* nil)
+	      (num (cl:read stream)))
+	 (if (numberp num)
+	     num
+	     (error "Not a number: ~S" num))))
+      ((char= ch #\#)
+       (read-boolean stream))
       ((char= ch #\")
-       (cl:read stream))
+       (let* ((*read-eval* nil)
+	      (str (cl:read stream)))
+	 (if (stringp str)
+	     str
+	     (error "Not a string: ~S" str))))
       ((identifier-start-char? ch)
-       (read-name stream))
-;;      ((and (or (char= ch #\+) (char= ch #\-) (char= ch #\.)) 
+       (read-name stream)) 
       (t (error 'unexpected-character :character ch)))))
 
 (defun read-proper-form (stream language)
@@ -40,6 +49,17 @@
 		form)
 	      (error "Concept ~S is not implemented" concept)))
 	(error "Unknown concept ~S in ~S" name language))))
+
+(defun read-boolean (stream)
+  (let ((ch (peek-char nil stream)))
+    (cond
+      ((or (char= ch #\t) (char= ch #\T))
+       (read-char stream)
+       t)
+      ((or (char= ch #\f) (char= ch #\F))
+       (read-char stream)
+       nil)
+      (t (error "Not a boolean: ~A" ch)))))
 
 (defun read-list (stream language element-reader)
   (peek-char t stream)
@@ -66,7 +86,7 @@
 	       (error "Unknown feature ~S in ~S" name form))
 	     (set-feature form name
 			  (let ((mult (feature-multiplicity feature)))
-			    (if (or (null mult) (equal mult 1))
+			    (if (or (null mult) (equal mult 1) (equal (cdr mult) 1))
 				(if (typep feature 'reference)
 				    (make-instance 'ref :key (read-name stream))
 				    (read-form stream language))
@@ -102,9 +122,9 @@
   (let ((simple-name "") (name nil))
     (loop :do (let ((ch (peek-char nil stream)))
 		(cond
-		  ((identifier-char? ch)
-		   (when (and (= (length simple-name) 0) (not (identifier-start-char? ch)))
-		     (error 'unexpected-character :character ch))
+		  ((or
+		    (identifier-start-char? ch)
+		    (and (> (length simple-name) 0) (identifier-char? ch)))
 		   (setf simple-name (concatenate 'string simple-name (string (read-char stream t)))))
 		  ((char= ch #\:)
 		   (if (> (length simple-name) 0)

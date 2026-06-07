@@ -52,7 +52,7 @@
   (concept name:\"concept1\" features:[(attribute name:\"feature-1\") (containment name:\"feature-2\") (reference name:\"feature-3\")])
 ])
 (language name:\"foo\")
-(concept1 feature-1: 3 feature-3: \"something\" feature-2: (concept1))"))))
+(concept1 feature-1: 42 feature-3: \"something\" feature-2: (concept1))"))))
     (is (= 3 (length result)))
     (is (typep (elt result 2) 'treep::form))))
 

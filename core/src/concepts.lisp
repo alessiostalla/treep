@@ -44,8 +44,8 @@
 
 (defclass concept-definition (form)
   ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
-   (features :reader features :initarg :features :initform (list) :kind :containment :multiplicity :n :feature-name "features")
-   (superconcepts :reader concept-superconcepts  :initarg :superconcepts :initform (list) :kind :reference :multiplicity :n :feature-name "superconcepts")
+   (features :reader features :initarg :features :initform (list) :kind :containment :multiplicity (0) :feature-name "features")
+   (superconcepts :reader concept-superconcepts  :initarg :superconcepts :initform (list) :kind :reference :multiplicity (0) :feature-name "superconcepts")
    ;; Used by the reader to instantiate the concept
    (implementation :accessor concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
   (:metaclass concept))
@@ -78,7 +78,7 @@
 
 (defconcept (language "define-language") ()
   ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
-   (concepts :reader concepts :initform (list) :kind :containment :multiplicity :n :feature-name "concepts")
+   (concepts :reader concepts :initform (list) :kind :containment :multiplicity (0) :feature-name "concepts")
    (concepts-map :reader concepts-map :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts-map")
    (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :attribute :feature-name "used-languages")))
 
@@ -127,9 +127,14 @@
 
 ;; Features
 
+(defconcept multiplicity ()
+  ((min :initarg :min :accessor multiplicity-min :feature-name "min" :kind :attribute :initform 0)
+   (max :initarg :max :accessor multiplicity-max :feature-name "max" :kind :attribute :initform nil))
+  (:language *treep*))
+  
 (defconcept feature ()
   ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
-   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform 1 :feature-name "multiplicity" :kind :attribute)
+   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform (make-instance 'multiplicity :min 1 :max 1) :feature-name "multiplicity" :kind :containment)
    (slot-name :accessor feature-slot-name :initarg :slot-name :initform nil :kind :internal :feature-name "slot-name"))
   (:language *treep*))
 
@@ -276,7 +281,7 @@
    :feature-name (feature-name feature)
    :class concept
    :definition feature
-   :multiplicity (feature-multiplicity feature)
+   :multiplicity (cons (multiplicity-min (feature-multiplicity feature)) (multiplicity-max (feature-multiplicity feature)))
    :kind (feature-kind feature)))
 
 (defun concept-of (form)
@@ -290,7 +295,7 @@
 	(print-unreadable-object (object stream :type nil :identity t)
 	  (let ((def (concept-definition concept)))
 	    (if def
-		(princ (concept-name object) stream)
+		(princ (concept-name def) stream)
 		(princ (class-name concept) stream))))
 	(call-next-method))))
 
@@ -317,8 +322,8 @@
 		     :name "concept"
 		     :features (list
 				(make-instance 'attribute :name "name")
-				(make-instance 'containment :name "features" :multiplicity :n)
-				(make-instance 'reference :name "superconcepts" :multiplicity :n))
+				(make-instance 'containment :name "features" :multiplicity (make-instance 'multiplicity))
+				(make-instance 'reference :name "superconcepts" :multiplicity (make-instance 'multiplicity)))
 		     :implementation (find-class 'concept-definition)))
 
 (add-concept 'concept-definition *treep*)
