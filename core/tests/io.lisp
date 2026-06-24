@@ -59,7 +59,7 @@
 (deftest test-load-inheritance ()
   (let ((result (load (make-string-input-stream "(define-language name:\"foo\" concepts:[
   (concept name:\"concept1\" features:[(attribute name:\"feature-1\") (containment name:\"feature-2\") (reference name:\"feature-3\")])
-  (concept name:\"concept2\" superconcepts:[concept1] features:[(attribute name:\"feature-1\")])
+  (concept name:\"concept2\" superconcepts:[{concept1}] features:[(attribute name:\"feature-1\")])
 ])
 (language name:\"foo\")
 (concept2 feature-1: 3 feature-3: \"something\" feature-2: (concept1))"))))

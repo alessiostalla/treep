@@ -14,9 +14,8 @@
     (cond
       ((char= ch #\()
        (read-proper-form stream language))
-      ((char= ch #\))
-       (read-char stream)
-       (error 'unexpected-character :character ch))
+      ((char= ch #\{)
+       (read-reference stream language))
       ((or (digit-char-p ch) (char= ch #\+) (char= ch #\-) (char= ch #\.))
        (let* ((*read-eval* nil)
 	      (num (cl:read stream)))
@@ -24,7 +23,7 @@
 	     num
 	     (error "Not a number: ~S" num))))
       ((char= ch #\#)
-       (read-boolean stream))
+       (read-special-literal stream))
       ((char= ch #\")
        (let* ((*read-eval* nil)
 	      (str (cl:read stream)))
@@ -50,7 +49,20 @@
 	      (error "Concept ~S is not implemented" concept)))
 	(error "Unknown concept ~S in ~S" name language))))
 
-(defun read-boolean (stream)
+(defun read-reference (stream language)
+  (declare (ignore language))
+    (let ((ch (read-char stream t)))
+    (unless (char= ch #\{)
+      (error 'unexpected-character :character ch)))
+  (let* ((key (read-name stream))
+	 (terminating-char (peek-char t stream))
+	 (ref (make-instance 'ref :key key)))
+    (if (char= terminating-char #\})
+	(read-char stream)
+	(error 'unexpected-character :character terminating-char))
+    ref))
+
+(defun read-special-literal (stream)
   (let ((ch (peek-char nil stream)))
     (cond
       ((or (char= ch #\t) (char= ch #\T))
@@ -87,15 +99,8 @@
 	     (set-feature form name
 			  (let ((mult (feature-multiplicity feature)))
 			    (if (or (null mult) (equal mult 1) (equal (cdr mult) 1))
-				(if (typep feature 'reference)
-				    (make-instance 'ref :key (read-name stream))
-				    (read-form stream language))
-				(read-list stream language
-					   (if (reference? feature)
-					       (lambda (s l)
-						 (declare (ignore l))
-						 (make-instance 'ref :key (read-name s)))
-					       #'read-form)))))))))
+				(read-form stream language)
+				(read-list stream language #'read-form))))))))
   (form-filled form))
 
 (defgeneric form-filled (form)
@@ -142,16 +147,26 @@
 
 (defun write-form (form stream &optional (language *language*))
   (typecase form
+    (ref
+     (princ "{" stream)
+     (write-name (ref-key form) stream)
+     (princ "}" stream))
     (form (write-proper-form form stream language))
     (null nil)
     (t (write form :stream stream))))
 
+(defun feature-transient? (f)
+  (or (eq (feature-kind f) :internal)
+      (feature-computed f)))
+
 (defun write-proper-form (form stream language)
   (princ "(" stream)
-  (let ((concept (concept-definition (class-of form))))
+  (let ((concept (concept-of form)))
     (write-concept-name concept stream language)
     (do+
       (for f (in (features concept)))
+      (when (feature-transient? f)
+	(skip))
       (let ((v (get-feature form f)))
 	(when v
 	  (princ " " stream)
@@ -175,3 +190,14 @@
       (princ (language-name lang) stream)
       (princ #\: stream)))
   (princ (concept-name concept) stream))
+
+(defun write-name (name stream)
+  (typecase name
+    (string (princ name stream))
+    (list (do+ (for n (in name))
+	       (for f (being t :then nil))
+	       (unless f
+		 (princ ":" stream))
+	       (princ n stream)))
+    (t (error "Not a name: ~S" name))))
+      
