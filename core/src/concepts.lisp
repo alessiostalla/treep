@@ -44,9 +44,22 @@
   ((container :accessor form-container :initform nil :kind :internal :feature-name "container"))
   (:metaclass concept))
 
-(defclass concept-definition (form)
-  ((name :initarg :name :accessor concept-name :feature-name "name" :kind :attribute)
-   (features :reader features :initarg :features :initform (list) :kind :containment :multiplicity (0) :feature-name "features")
+(defclass named (form)
+  ((name :initarg :name :accessor name-of :feature-name "name" :kind :attribute :type string))
+  (:metaclass concept))
+
+(defstruct name (key context))
+
+(defgeneric qualified-name-of (form))
+
+(defmethod qualified-name-of ((n named))
+  (let* ((container (form-container n))
+	 (container-form (when container (container-form container)))
+	 (context (when container-form (ignore-errors (qualified-name container-form)))))
+    (make-name :context context :key (name-of n))))
+
+(defclass concept-definition (named)
+  ((features :reader features :initarg :features :initform (list) :kind :containment :multiplicity (0) :feature-name "features")
    (superconcepts :reader concept-superconcepts  :initarg :superconcepts :initform (list) :kind :reference :multiplicity (0) :feature-name "superconcepts")
    ;; Used by the reader to instantiate the concept
    (implementation :accessor concept-implementation :initarg :implementation :initform nil :kind :internal :feature-name "implementation"))
@@ -56,7 +69,10 @@
   (or (concept-definition concept) (error "The definition of concept ~A in unknown" concept)))
 
 (defmethod concept-name ((c concept))
-  (concept-name (ensure-concept-definition c)))
+  (name-of (ensure-concept-definition c)))
+
+(defmethod concept-name ((c concept-definition))
+  (name-of c))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun slot-descriptor->feature (descr)
@@ -78,11 +94,13 @@
 	 ,@(when language-option
 	     `((add-concept ',name ,(cadr language-option))))))))
 
-(defconcept (language "define-language") ()
-  ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute)
-   (concepts :reader concepts :initform (list) :kind :containment :multiplicity (0) :feature-name "concepts")
+(defconcept (language "define-language") (named)
+  ((concepts :reader concepts :initform (list) :kind :containment :multiplicity (0) :feature-name "concepts")
    (concepts-map :reader concepts-map :initform (make-hash-table :test #'equal) :kind :internal :feature-name "concepts-map")
    (used-languages :accessor used-languages :initarg :used-languages :initform nil :kind :attribute :feature-name "used-languages")))
+
+(defun language-name (lang)
+  (name-of lang))
 
 (defvar *treep* (make-instance 'language :name "treep"))
 (defvar *language* (make-instance 'language :name "default" :used-languages (list *treep*)))
@@ -134,12 +152,14 @@
    (max :initarg :max :accessor multiplicity-max :feature-name "max" :kind :attribute :initform nil))
   (:language *treep*))
   
-(defconcept feature ()
-  ((name :initarg :name :accessor feature-name :feature-name "name" :kind :attribute)
-   (multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform (make-instance 'multiplicity :min 1 :max 1) :feature-name "multiplicity" :kind :containment)
+(defconcept feature (named)
+  ((multiplicity :initarg :multiplicity :accessor feature-multiplicity :initform (make-instance 'multiplicity :min 1 :max 1) :feature-name "multiplicity" :kind :containment)
    (computed :initarg :computed :accessor feature-computed :initform nil :feature-name "computed" :kind :attribute)
    (slot-name :accessor feature-slot-name :initarg :slot-name :initform nil :kind :internal :feature-name "slot-name"))
   (:language *treep*))
+
+(defmethod feature-name ((f feature))
+  (name-of f))
 
 (defconcept ref ()
   ((key :initarg :key :accessor ref-key :kind :attribute)
@@ -296,9 +316,8 @@
   ((value :initarg :value :accessor constant-value :feature-name "value" :kind :attribute))
   (:language *treep*))
 
-(defconcept binding ()
-  ((name :initarg :name :accessor binding-name :feature-name "name" :kind :attribute)
-   (value :initarg :value :accessor binding-value :feature-name "value" :kind :containment))
+(defconcept binding (named)
+  ((value :initarg :value :accessor binding-value :feature-name "value" :kind :containment))
   (:language *treep*))
 
 ;; Printing

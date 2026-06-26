@@ -8,7 +8,7 @@
 
 (deftest basic-io ()
   (let ((lang (read-form (make-string-input-stream "(treep:language name:\"foo\")"))))
-    (is (string= (language-name lang) "foo"))))
+    (is (string= (treep::language-ref-name lang) "foo"))))
 
 (deftest nesting ()
   (let ((lang (read-form (make-string-input-stream "(define-language name:\"foo\" concepts:[])"))))

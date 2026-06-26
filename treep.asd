@@ -10,7 +10,9 @@
 		 (:file "io")
 		 (:file "load")
 		 (:file "install")
-		 (:file "migrate"))))
+		 (:file "migrate")
+		 (:file "transform")
+		 (:file "eval"))))
   :description "The Treep language"
   :in-order-to ((test-op (test-op "treep/tests"))))
 

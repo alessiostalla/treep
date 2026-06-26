@@ -2,7 +2,7 @@
 
 ;; TODO macro
 (defconcept (reference-language "language") ()
-  ((name :initarg :name :accessor language-name :feature-name "name" :kind :attribute))
+  ((name :initarg :name :accessor language-ref-name :feature-name "name" :kind :attribute))
   (:language *treep*))
 
 (defclass system ()
@@ -33,8 +33,8 @@
 		(typecase form
 		  (reference-language
 		   (setf language
-			 (or (find-language (language-name form) languages)
-			     (error 'not-a-language :name (language-name form) :candidates languages))))
+			 (or (find-language (language-ref-name form) languages)
+			     (error 'not-a-language :name (language-ref-name form) :candidates languages))))
 		  (language (push form languages))))) ;; Allow to use a newly defined language immediately
        (nreverse forms)))
     (string

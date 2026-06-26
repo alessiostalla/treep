@@ -1,0 +1,8 @@
+(define-language name:"arithmetic")
+
+(concept name:operation features:[(attribute name:"operands" multiplicity:(multiplicity))])
+
+(concept name:"addition" superconcepts:[{operation}])
+(concept name:"subtraction" superconcepts:[{operation}])
+(concept name:"multiplication" superconcepts:[{operation}])
+(concept name:"division" superconcepts:[{operation}])
