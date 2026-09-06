@@ -41,7 +41,8 @@
 (defstruct container form slot)
 
 (defclass form (clutter:-with-attributes)
-  ((container :accessor form-container :initform nil :kind :internal :feature-name "container"))
+  ((container :accessor form-container :initform nil :kind :internal :feature-name "container")
+   (annotations :accessor form-annotations :initform nil :kind :containment :multiplicity (0) :feature-name "annotations"))
   (:metaclass concept))
 
 (defclass named (form)

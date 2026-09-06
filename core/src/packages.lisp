@@ -1,15 +1,15 @@
 (defpackage treep
   (:use :cl :doplus)
-  (:shadow #:load)
+  (:shadow #:documentation #:load)
   (:export #:concept #:concept-definition #:concept-name #:concepts
-	   #:features #:feature-name #:find-language
+	   #:features #:feature-name #:find-language #:form-annotations
 	   #:get-feature
 	   #:install #:install-element #:install-into-package
 	   #:known-languages
 	   #:language #:language-name #:load #:lookup-concept
 	   #:migrate
 	   #:read-form
-	   #:set-feature
+	   #:set-feature #:source-information
 	   #:write-form
 
 	   #:*language* #:*system* #:*treep*))

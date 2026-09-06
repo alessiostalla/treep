@@ -14,6 +14,11 @@
     (cond
       ((char= ch #\()
        (read-proper-form stream language))
+      ((char= ch #\@)
+       (let ((annotation (read-form stream language))
+	     (annotated (read-form stream language)))
+	 (push annotation (form-annotations annotated))
+	 annotated))
       ((char= ch #\{)
        (read-reference stream language))
       ((or (digit-char-p ch) (char= ch #\+) (char= ch #\-) (char= ch #\.))
@@ -160,6 +165,11 @@
       (feature-computed f)))
 
 (defun write-proper-form (form stream language)
+  (dolist (a (form-annotations form))
+    (unless (typep a 'runtime-only-annotation)
+      (princ "@" stream)
+      (write-form a stream language)
+      (terpri stream)))
   (princ "(" stream)
   (let ((concept (concept-of form)))
     (write-concept-name concept stream language)

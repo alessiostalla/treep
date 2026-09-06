@@ -7,6 +7,7 @@
                 :components
                 ((:file "packages")
 		 (:file "concepts")
+		 (:file "annotations")
 		 (:file "io")
 		 (:file "load")
 		 (:file "install")
@@ -24,6 +25,7 @@
                 :components
                 ((:file "packages")
 		 (:file "io")
+		 (:file "annotations")
 		 (:file "install")
 		 (:file "migrate")
 		 (:file "suite"))))
