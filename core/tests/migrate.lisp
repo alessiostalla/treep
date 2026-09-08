@@ -17,7 +17,7 @@
     (let* ((new-version (test-model-for-migration))
 	   (new-lang (first new-version))
 	   (new-concept1 (lookup-concept "concept1" new-lang)))
-      (migrate instance1 new-lang)
+      (migrate instance1 (list (cons lang new-lang)))
       (let ((class1-redefined (class-of instance1)))
 	(is (not (eq class1 class1-redefined)))
 	(is (eq class1-redefined (class-of (get-feature instance1 "cont"))))

@@ -23,12 +23,11 @@
 
 (defun load (stream &optional (language *language*) (languages (known-languages)))
   (typecase stream
-    (stream
+    (source-position-tracking-input-stream
      (let ((forms (list)))
        (loop
 	  :while (peek-char t stream nil)
 	  :do (let ((form (read-form stream language)))
-		;; TODO autoparent
 		(push form forms)
 		(typecase form
 		  (reference-language
@@ -37,7 +36,9 @@
 			     (error 'not-a-language :name (language-ref-name form) :candidates languages))))
 		  (language (push form languages))))) ;; Allow to use a newly defined language immediately
        (nreverse forms)))
+    (stream
+     (load (make-instance 'source-position-tracking-input-stream :stream stream) language languages))
     (string
      (with-open-file (stream stream)
-       (load stream)))
+       (load stream language languages)))
     (t (error "Not a stream designator: ~S" stream))))

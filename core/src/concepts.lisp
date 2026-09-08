@@ -49,7 +49,7 @@
   ((name :initarg :name :accessor name-of :feature-name "name" :kind :attribute :type string))
   (:metaclass concept))
 
-(defstruct name (key context))
+(defstruct name key context)
 
 (defgeneric qualified-name-of (form))
 
@@ -119,7 +119,7 @@
   (setf concept (ensure-concept-definition concept))
   (push concept (slot-value language 'concepts))
   (setf (gethash (concept-name concept) (concepts-map language)) concept)
-  (setf (form-container concept) (make-container :form language :slot 'concepts))
+  (setf (form-container concept) (make-container :form language :slot (resolve-feature 'concepts language)))
   concept)
 
 (defun concept-language (concept)

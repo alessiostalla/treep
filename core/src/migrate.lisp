@@ -1,19 +1,29 @@
 (in-package :treep)
 
-(defun migrate (form to-language)
-  (let ((*migrated* nil) (*to-language* to-language))
-    (declare (special *migrated* *to-language*))
-    (%migrate form to-language)))
+(defun migrate (form languages-map)
+  (let ((*migrated* nil) (*languages-map* languages-map))
+    (declare (special *migrated* *languages-map*))
+    (%migrate form languages-map)))
 
-(defun %migrate (form to-language)
+(defun %migrate (form languages-map)
   (declare (special *migrated*))
   (if (find form *migrated*)
       form
       (let ((*migrated* (cons form *migrated*))
-	    (target-concept (lookup-concept-for-migration form to-language)))
-	(change-class form (ensure-concept-implementation target-concept)))))
+	    (target-concept
+	     (let ((target-language (cdr (assoc (concept-language (concept-of form)) languages-map))))
+	       (when target-language
+		 (lookup-concept-for-migration form target-language)))))
+	(declare (special *migrated*))
+	(if target-concept
+	    (change-class form (ensure-concept-implementation target-concept))
+	    (migrate-form-contents form form languages-map)))))
 
 (defmethod update-instance-for-different-class :before ((old form) (new form) &key)
+  (declare (special *languages-map*))
+  (migrate-form-contents old new *languages-map*))
+
+(defun migrate-form-contents (old new languages-map)
   (do+
     (for old-slot (in (closer-mop::class-slots (class-of old))))
     (for old-slot-name (being (closer-mop:slot-definition-name old-slot)))
@@ -24,15 +34,15 @@
 	    (let ((new-value
 		   (if (containment? new-slot)
 		       (flet ((migrate-child (child)
-				(declare (special *to-language*))
-				(migrate child *to-language*)))
+				(migrate child languages-map)))
 			 (if (listp old-value)
 			     (mapcar #'migrate-child old-value)
 			     (migrate-child old-value)))
 		       old-value)))
 	      (set-feature new new-slot new-value))
 	    (when new-slot
-	      (setf (slot-value new (closer-mop:slot-definition-name new-slot)) old-value)))))))
+	      (setf (slot-value new (closer-mop:slot-definition-name new-slot)) old-value))))))
+  new)
 
 (defun safe-feature-name (slot)
   (ignore-errors (feature-name slot)))

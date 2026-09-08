@@ -9,6 +9,35 @@
 (defun is-space-character (ch)
   (or (char= ch #\Space) (char= ch #\Tab) (char= ch #\Linefeed) (char= ch #\Return)))
 
+(defclass source-position-tracking-input-stream (trivial-gray-streams:fundamental-character-input-stream)
+  ((underlying-stream :initarg :stream :reader underlying-stream-of)
+   (line :initform 1 :accessor stream-line)
+   (column :initform 0 :accessor stream-column)))
+
+(defmethod trivial-gray-streams:stream-read-char ((stream source-position-tracking-input-stream))
+  (let ((char (read-char (underlying-stream-of stream) nil :eof)))
+    (unless (eq char :eof)
+      (if (char= char #\Newline)
+          (progn
+            (incf (stream-line stream))
+            (setf (stream-column stream) 0))
+          (incf (stream-column stream))))
+    char))
+
+(defmethod trivial-gray-streams:stream-unread-char ((stream source-position-tracking-input-stream) char)
+  (unread-char char (underlying-stream-of stream))
+  ;; Note: Precise unread column tracking requires a small stack/history
+  (if (char= char #\Newline)
+      (decf (stream-line stream))
+      (decf (stream-column stream))))
+
+(defmethod trivial-gray-streams:stream-read-line ((stream source-position-tracking-input-stream))
+  (multiple-value-bind (string eof?)
+      (trivial-gray-streams:stream-read-line (underlying-stream-of stream))
+    (unless eof? (incf (stream-line stream)))
+    (setf (stream-column stream) 0)
+    (values string eof?)))
+
 (defun read-form (stream &optional (language *language*))
   (let ((ch (peek-char t stream)))
     (cond
@@ -43,13 +72,24 @@
   (let ((ch (read-char stream t)))
     (unless (char= ch #\()
       (error 'unexpected-character :character ch)))
-  (let* ((name (read-name stream))
+  (let* ((source-info
+	  (when (typep stream 'source-position-tracking-input-stream)
+	    (make-instance 'source-information
+			   :start-line (stream-line stream)
+			   :start-column (1- (stream-column stream)))))
+	 (name (read-name stream))
 	 (concept (lookup-concept name language)))
     (if concept
 	(let ((concept-class (ensure-concept-implementation concept)))
 	  (if concept-class
 	      (let ((form (make-instance concept-class)))
 		(fill-form form stream language)
+		(when source-info
+		  (setf (slot-value source-info 'end-line) (stream-line stream))
+		  (setf (slot-value source-info 'end-column) (stream-column stream))
+		  (setf (form-container source-info)
+			(make-container :form form :slot (make-container :form form :slot (resolve-feature 'annotations language))))
+		  (push source-info (form-annotations form)))
 		form)
 	      (error "Concept ~S is not implemented" concept)))
 	(error "Unknown concept ~S in ~S" name language))))
