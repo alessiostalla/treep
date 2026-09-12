@@ -219,16 +219,17 @@
 (defun reference? (feature)
   (eq (feature-kind feature) :reference))
 
-(defun resolve-feature (feature form)
-  (typecase feature
-    (concept-slot-definition feature)
-    (symbol
-     (find feature
-	   (closer-mop:class-slots (class-of form))
-	   :key #'closer-mop:slot-definition-name))
-    ((or string list) (lookup-feature feature form))
-    (feature (lookup-feature (feature-name feature) form))
-    (t (error "Not a valid feature designator: ~S" feature))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun resolve-feature (feature form)
+    (typecase feature
+      (concept-slot-definition feature)
+      (symbol
+       (find feature
+	     (closer-mop:class-slots (class-of form))
+	     :key #'closer-mop:slot-definition-name))
+      ((or string list) (lookup-feature feature form))
+      (feature (lookup-feature (feature-name feature) form))
+      (t (error "Not a valid feature designator: ~S" feature)))))
 
 (defun get-feature (form feature)
   (let ((the-feature (resolve-feature feature form)))

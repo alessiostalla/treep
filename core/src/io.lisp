@@ -39,6 +39,21 @@
     (values string eof?)))
 
 (defun read-form (stream &optional (language *language*))
+  (let* ((source-info
+	  (when (typep stream 'source-position-tracking-input-stream)
+	    (make-instance 'source-information
+			   :start-line (stream-line stream)
+			   :start-column (1- (stream-column stream)))))
+	 (form (read-form-without-source-info stream language)))
+    (when (and source-info (typep form 'form))
+      (setf (slot-value source-info 'end-line) (stream-line stream))
+      (setf (slot-value source-info 'end-column) (stream-column stream))
+      (setf (form-container source-info)
+	    (make-container :form form :slot (make-container :form form :slot (resolve-feature 'annotations language))))
+      (push source-info (form-annotations form)))
+    form))
+    
+(defun read-form-without-source-info (stream language)
   (let ((ch (peek-char t stream)))
     (cond
       ((char= ch #\()
@@ -72,24 +87,13 @@
   (let ((ch (read-char stream t)))
     (unless (char= ch #\()
       (error 'unexpected-character :character ch)))
-  (let* ((source-info
-	  (when (typep stream 'source-position-tracking-input-stream)
-	    (make-instance 'source-information
-			   :start-line (stream-line stream)
-			   :start-column (1- (stream-column stream)))))
-	 (name (read-name stream))
+  (let* ((name (read-name stream))
 	 (concept (lookup-concept name language)))
     (if concept
 	(let ((concept-class (ensure-concept-implementation concept)))
 	  (if concept-class
 	      (let ((form (make-instance concept-class)))
 		(fill-form form stream language)
-		(when source-info
-		  (setf (slot-value source-info 'end-line) (stream-line stream))
-		  (setf (slot-value source-info 'end-column) (stream-column stream))
-		  (setf (form-container source-info)
-			(make-container :form form :slot (make-container :form form :slot (resolve-feature 'annotations language))))
-		  (push source-info (form-annotations form)))
 		form)
 	      (error "Concept ~S is not implemented" concept)))
 	(error "Unknown concept ~S in ~S" name language))))
