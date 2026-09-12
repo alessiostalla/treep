@@ -51,7 +51,7 @@
       (setf (form-container source-info)
 	    (make-container :form form :slot (make-container :form form :slot (resolve-feature 'annotations language))))
       (push source-info (form-annotations form)))
-    form))
+    (values form source-info)))
     
 (defun read-form-without-source-info (stream language)
   (let ((ch (peek-char t stream)))
