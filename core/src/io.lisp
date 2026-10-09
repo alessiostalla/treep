@@ -48,9 +48,7 @@
     (when (and source-info (typep form 'form))
       (setf (slot-value source-info 'end-line) (stream-line stream))
       (setf (slot-value source-info 'end-column) (stream-column stream))
-      (setf (form-container source-info)
-	    (make-container :form form :slot (make-container :form form :slot (resolve-feature 'annotations language))))
-      (push source-info (form-annotations form)))
+      (add-annotation! source-info form))
     (values form source-info)))
     
 (defun read-form-without-source-info (stream language)

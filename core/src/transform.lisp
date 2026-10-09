@@ -1,5 +1,15 @@
 (in-package :treep)
 
+(defconcept transformed-from (runtime-only-annotation)
+  ((form :initarg :form :reader form :feature-name "form" :kind :reference))
+  (:language *treep*))
+
+(defun transform (node transformation)
+  (let ((new-node (funcall transformation node)))
+    (when (not (eq new-node node))
+      (add-annotation! (make-instance 'transformed-from :form (ref :target form))))
+    new-node))
+
 (defun transform-not-applicable (tr n)
   (declare (ignore tr n))
   nil)

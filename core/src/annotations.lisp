@@ -17,3 +17,9 @@
 (defconcept documentation (annotation)
   ((text :initarg :text :reader documentation-text :initform nil :feature-name "text" :kind :attribute))
   (:language *treep*))
+
+(defun add-annotation! (annotation form)
+  (setf (form-container annotation)
+	(make-container :form form :slot (make-container :form form :slot (resolve-feature 'annotations form))))
+  (push annotation (form-annotations form))
+  annotation)

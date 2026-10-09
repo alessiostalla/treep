@@ -167,6 +167,9 @@
    (target :initarg :target :accessor ref-target :initform nil :kind :internal))
   (:language *treep*))
 
+(defun ref (&key key target)
+  (make-instance 'ref :key key :target target))
+
 (defun resolve-ref (ref resolve-function)
   (let ((target (ref-target ref)))
     (unless target

@@ -7,6 +7,7 @@
                 :components
                 ((:file "packages")
 		 (:file "concepts")
+		 (:file "forms")
 		 (:file "annotations")
 		 (:file "io")
 		 (:file "load")
@@ -14,7 +15,7 @@
 		 (:file "migrate")
 		 (:file "transform")
 		 (:file "eval"))))
-  :description "The Treep language"
+  :description "Treep is a Language Workbench core for CLOS"
   :in-order-to ((test-op (test-op "treep/tests"))))
 
 (defsystem "treep/tests"
