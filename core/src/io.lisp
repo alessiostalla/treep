@@ -45,7 +45,7 @@
 			   :start-line (stream-line stream)
 			   :start-column (1- (stream-column stream)))))
 	 (form (read-form-without-source-info stream language)))
-    (when (and source-info (typep form 'form))
+    (when (and source-info (typep form 'form) (not (find-if (lambda (a) (typep a 'source-information)) (form-annotations form))))
       (setf (slot-value source-info 'end-line) (stream-line stream))
       (setf (slot-value source-info 'end-column) (stream-column stream))
       (add-annotation! source-info form))

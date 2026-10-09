@@ -113,6 +113,18 @@
 	  (when concept
 	    (return concept))))))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun resolve-feature (feature form)
+    (typecase feature
+      (concept-slot-definition feature)
+      (symbol
+       (find feature
+	     (closer-mop:class-slots (class-of form))
+	     :key #'closer-mop:slot-definition-name))
+      ((or string list) (lookup-feature feature form))
+      (feature (lookup-feature (feature-name feature) form))
+      (t (error "Not a valid feature designator: ~S" feature)))))
+
 (defun add-concept (concept language)
   (when (symbolp concept)
     (setf concept (or (find-class concept) (error "~S does not name a concept" concept))))
@@ -221,18 +233,6 @@
 
 (defun reference? (feature)
   (eq (feature-kind feature) :reference))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun resolve-feature (feature form)
-    (typecase feature
-      (concept-slot-definition feature)
-      (symbol
-       (find feature
-	     (closer-mop:class-slots (class-of form))
-	     :key #'closer-mop:slot-definition-name))
-      ((or string list) (lookup-feature feature form))
-      (feature (lookup-feature (feature-name feature) form))
-      (t (error "Not a valid feature designator: ~S" feature)))))
 
 (defun get-feature (form feature)
   (let ((the-feature (resolve-feature feature form)))

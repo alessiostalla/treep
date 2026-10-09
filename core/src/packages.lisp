@@ -9,7 +9,7 @@
 	   #:language #:language-name #:load #:lookup-concept
 	   #:migrate
 	   #:read-form
-	   #:set-feature #:source-information #:source-position-tracking-input-stream
+	   #:set-feature #:source-file #:source-information #:source-position-tracking-input-stream
 	   #:write-form
 
 	   #:*language* #:*system* #:*treep*))

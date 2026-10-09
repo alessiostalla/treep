@@ -14,7 +14,8 @@
 		 (:file "install")
 		 (:file "migrate")
 		 (:file "transform")
-		 (:file "eval"))))
+		 (:file "eval")
+		 (:file "asdf"))))
   :description "Treep is a Language Workbench core for CLOS"
   :in-order-to ((test-op (test-op "treep/tests"))))
 
